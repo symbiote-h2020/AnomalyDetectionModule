@@ -5,19 +5,24 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
+import eu.h2020.symbiote.security.services.EventManagerService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
 
-public class EventLogConsumerService extends DefaultConsumer {
+public class EventLogRequestConsumerService extends DefaultConsumer {
 
-    private static Log log = LogFactory.getLog(EventLogConsumerService.class);
+    private static Log log = LogFactory.getLog(EventLogRequestConsumerService.class);
+    private final EventManagerService eventManagerService;
 
-    public EventLogConsumerService(Channel channel) {
+    public EventLogRequestConsumerService(Channel channel, EventManagerService eventManagerService) {
+
         super(channel);
+        this.eventManagerService = eventManagerService;
     }
 
     /**
@@ -37,7 +42,7 @@ public class EventLogConsumerService extends DefaultConsumer {
 
         String message = new String(body, "UTF-8");
         ObjectMapper om = new ObjectMapper();
-        String event;
+        EventLogRequest eventLogRequest;
         String response;
 
         if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
@@ -47,10 +52,27 @@ public class EventLogConsumerService extends DefaultConsumer {
                     .correlationId(properties.getCorrelationId())
                     .build();
             try {
-                event = om.readValue(message, String.class);
-                log.info("I received log from AAM: " + event);
-                //TODO save and process events
-                response = om.writeValueAsString("Thanks");
+                eventLogRequest = om.readValue(message, eu.h2020.symbiote.security.communication.payloads.EventLogRequest.class);
+                log.info("I received log from AAM");
+                if (eventLogRequest.getUsername() == null
+                        || eventLogRequest.getUsername().isEmpty())
+                    throw new IllegalArgumentException("Username/identifier should be provided");
+                switch (eventLogRequest.getEventType()) {
+                    case LOGIN_FAILED:
+                        eventManagerService.addLoginFailEvent(eventLogRequest);
+                        break;
+                    case ACQUISITION_FAILED:
+                        eventManagerService.addHomeTokenAcquisitionFailEvent(eventLogRequest);
+                        break;
+                    case VALIDATION_FAILED:
+                        eventManagerService.addValidationFailEvent(eventLogRequest);
+                        break;
+                    default:
+                        String msg = "Event type of AnomalyDetectionRequest was unrecognized";
+                        log.error(msg);
+                        throw new SecurityException(msg);
+                }
+                response = om.writeValueAsString("OK");
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
             } catch (Exception e) {
                 log.error(e);
@@ -63,4 +85,6 @@ public class EventLogConsumerService extends DefaultConsumer {
         }
         this.getChannel().basicAck(envelope.getDeliveryTag(), false);
     }
+
+
 }
