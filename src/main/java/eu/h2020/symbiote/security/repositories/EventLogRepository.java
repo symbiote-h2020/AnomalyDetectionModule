@@ -4,5 +4,5 @@ import eu.h2020.symbiote.security.repositories.entities.EventLog;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 
-public interface HomeTokenAcquisitionErrorRepository extends MongoRepository<EventLog, String> {
+public interface EventLogRepository extends MongoRepository<EventLog, String> {
 }

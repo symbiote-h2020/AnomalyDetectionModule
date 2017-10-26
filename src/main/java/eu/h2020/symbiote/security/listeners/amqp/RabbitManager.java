@@ -5,7 +5,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Consumer;
 import eu.h2020.symbiote.security.listeners.amqp.consumers.EventLogRequestConsumerService;
-import eu.h2020.symbiote.security.repositories.LoginErrorRepository;
 import eu.h2020.symbiote.security.services.EventManagerService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -24,7 +23,6 @@ import java.util.concurrent.TimeoutException;
 public class RabbitManager {
     private static Log log = LogFactory.getLog(RabbitManager.class);
     private Connection connection;
-    private final LoginErrorRepository loginErrorRepository;
     private final EventManagerService eventManagerService;
 
     @Value("${rabbit.host}")
@@ -51,18 +49,17 @@ public class RabbitManager {
     private String eventLogRoutingKey;
 
     @Autowired
-    public RabbitManager(LoginErrorRepository loginErrorRepository, EventManagerService eventManagerService) {
-        this.loginErrorRepository = loginErrorRepository;
+    public RabbitManager(EventManagerService eventManagerService) {
         this.eventManagerService = eventManagerService;
     }
 
     /**
      * Initiates connection with Rabbit server using parameters from Bootstrap Properties
      *
-     * @throws IOException
-     * @throws TimeoutException
+     * @throws IOException IOException
+     * @throws TimeoutException TimeoutException
      */
-    public Connection getConnection() throws IOException, TimeoutException {
+    private Connection getConnection() throws IOException, TimeoutException {
         if (connection == null) {
             ConnectionFactory factory = new ConnectionFactory();
             factory.setHost(this.rabbitHost);

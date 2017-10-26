@@ -1,9 +1,8 @@
 package eu.h2020.symbiote.security.services;
 
+import eu.h2020.symbiote.security.commons.enums.EventType;
 import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
-import eu.h2020.symbiote.security.repositories.HomeTokenAcquisitionErrorRepository;
-import eu.h2020.symbiote.security.repositories.LoginErrorRepository;
-import eu.h2020.symbiote.security.repositories.ValidationErrorRepository;
+import eu.h2020.symbiote.security.repositories.EventLogRepository;
 import eu.h2020.symbiote.security.repositories.entities.EventLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,58 +12,52 @@ import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 @Service
 public class EventManagerService {
 
-    private LoginErrorRepository loginErrorRepository;
-    private HomeTokenAcquisitionErrorRepository homeTokenAcquisitionErrorRepository;
-    private ValidationErrorRepository validationErrorRepository;
-
+    private EventLogRepository eventLogRepository;
     @Autowired
-    EventManagerService(LoginErrorRepository loginErrorRepository, HomeTokenAcquisitionErrorRepository homeTokenAcquisitionErrorRepository, ValidationErrorRepository validationErrorRepository) {
+    EventManagerService(EventLogRepository eventLogRepository) {
 
-        this.loginErrorRepository = loginErrorRepository;
-        this.homeTokenAcquisitionErrorRepository = homeTokenAcquisitionErrorRepository;
-        this.validationErrorRepository = validationErrorRepository;
-
+        this.eventLogRepository = eventLogRepository;
     }
 
-    public void addLoginFailEvent(EventLogRequest anomalyDetectionRequest) {
+    public void addLoginFailEvent(EventLogRequest eventLogRequest) {
         EventLog event;
-        if (!loginErrorRepository.exists(anomalyDetectionRequest.getUsername())) {
-            event = new EventLog(anomalyDetectionRequest.getUsername(), anomalyDetectionRequest.getTimestamp());
+        if (!eventLogRepository.exists(eventLogRequest.getUsername())) {
+            event = new EventLog(eventLogRequest.getUsername(), eventLogRequest.getTimestamp(), eventLogRequest.getTimestamp(), EventType.LOGIN_FAILED);
         } else {
-            event = loginErrorRepository.findOne(anomalyDetectionRequest.getUsername());
-            event.setLastError(anomalyDetectionRequest.getTimestamp());
+            event = eventLogRepository.findOne(eventLogRequest.getUsername());
+            event.setLastError(eventLogRequest.getTimestamp());
         }
-        loginErrorRepository.save(event);
+        eventLogRepository.save(event);
     }
 
-    public void addHomeTokenAcquisitionFailEvent(EventLogRequest anomalyDetectionRequest) {
+    public void addHomeTokenAcquisitionFailEvent(EventLogRequest eventLogRequest) {
         EventLog event;
-        String identifier = buildIdentifier(anomalyDetectionRequest);
-        if (!homeTokenAcquisitionErrorRepository.exists(identifier)) {
-            event = new EventLog(identifier, anomalyDetectionRequest.getTimestamp());
+        String identifier = buildIdentifier(eventLogRequest);
+        if (!eventLogRepository.exists(identifier)) {
+            event = new EventLog(identifier, eventLogRequest.getTimestamp(), eventLogRequest.getTimestamp(), EventType.ACQUISITION_FAILED);
         } else {
-            event = homeTokenAcquisitionErrorRepository.findOne(identifier);
-            event.setLastError(anomalyDetectionRequest.getTimestamp());
+            event = eventLogRepository.findOne(identifier);
+            event.setLastError(eventLogRequest.getTimestamp());
         }
-        homeTokenAcquisitionErrorRepository.save(event);
+        eventLogRepository.save(event);
     }
 
-    private String buildIdentifier(EventLogRequest anomalyDetectionRequest) {
-        if (anomalyDetectionRequest.getClientIdentifier() == null
-                || anomalyDetectionRequest.getClientIdentifier().isEmpty())
-            return anomalyDetectionRequest.getUsername();
-        return anomalyDetectionRequest.getUsername() + illegalSign + anomalyDetectionRequest.getClientIdentifier();
+    private String buildIdentifier(EventLogRequest eventLogRequest) {
+        if (eventLogRequest.getClientIdentifier() == null
+                || eventLogRequest.getClientIdentifier().isEmpty())
+            return eventLogRequest.getUsername();
+        return eventLogRequest.getUsername() + illegalSign + eventLogRequest.getClientIdentifier();
     }
 
     public void addValidationFailEvent(EventLogRequest eventLogRequest) {
         EventLog event;
         String identifier = eventLogRequest.getJti();
-        if (!validationErrorRepository.exists(identifier)) {
-            event = new EventLog(identifier, eventLogRequest.getTimestamp());
+        if (!eventLogRepository.exists(identifier)) {
+            event = new EventLog(identifier, eventLogRequest.getTimestamp(), eventLogRequest.getTimestamp(), EventType.VALIDATION_FAILED);
         } else {
-            event = validationErrorRepository.findOne(identifier);
+            event = eventLogRepository.findOne(identifier);
             event.setLastError(eventLogRequest.getTimestamp());
         }
-        validationErrorRepository.save(event);
+        eventLogRepository.save(event);
     }
 }
