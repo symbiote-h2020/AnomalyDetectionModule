@@ -65,4 +65,5 @@ public class EventLogsUnitTests extends AnomalyDetectionModuleApplicationTests {
         eventManagerService.addValidationFailEvent(eventLogRequest);
         assertEquals(1, eventLogRepository.findOne("12345").getCounter());
     }
+
 }
