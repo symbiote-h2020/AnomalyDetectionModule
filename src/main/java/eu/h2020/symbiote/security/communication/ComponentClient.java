@@ -2,7 +2,6 @@ package eu.h2020.symbiote.security.communication;
 
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
-import eu.h2020.symbiote.security.communication.interfaces.IFeignAAMClient;
 import eu.h2020.symbiote.security.communication.interfaces.IFeignComponentClient;
 import eu.h2020.symbiote.security.communication.payloads.HandleAnomalyRequest;
 import feign.Feign;
