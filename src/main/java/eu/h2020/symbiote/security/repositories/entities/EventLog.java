@@ -5,6 +5,9 @@ import eu.h2020.symbiote.security.commons.enums.EventType;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Entity, in which identifiers of the users are kept, for whom error occured during login.
  * Contains timestamp of the last error, identifier of the user (username in this case) and a counter of errors occured in short time.
@@ -19,6 +22,7 @@ public class EventLog {
     @Indexed
     private EventType eventType = EventType.NULL;
     private int counter = 0;
+    private List<String> platformIds = new ArrayList<>();
 
     /**
      * Constructor for entity in repositories.
@@ -60,6 +64,18 @@ public class EventLog {
         }
         counter++;
         this.lastError = lastError;
+    }
+
+    public List<String> getPlatformIds() {
+        return this.platformIds;
+    }
+
+    public void addPlatformId(String platformId) {
+        this.platformIds.add(platformId);
+    }
+
+    public void removePlatformId(String platformId) {
+        this.platformIds.remove(platformId);
     }
 
     public int getCounter() {

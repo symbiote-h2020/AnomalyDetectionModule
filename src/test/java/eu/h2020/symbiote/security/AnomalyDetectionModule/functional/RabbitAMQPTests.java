@@ -21,7 +21,7 @@ public class RabbitAMQPTests extends AnomalyDetectionModuleApplicationTests {
     String anomalyDetectionQueue;
     @Test
     public void communicationTest() throws IOException, TimeoutException {
-        EventLogRequest eventLogRequest = new EventLogRequest("testUser", "", "", EventType.LOGIN_FAILED, 0L);
+        EventLogRequest eventLogRequest = new EventLogRequest("testUser", "", "", "", EventType.LOGIN_FAILED, 0L, null, null);
         System.out.println(anomalyDetectionQueue);
         rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(
                 eventLogRequest));
