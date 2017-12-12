@@ -2,7 +2,10 @@ package eu.h2020.symbiote.security.AnomalyDetectionModule;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.listeners.amqp.RabbitManager;
+import eu.h2020.symbiote.security.repositories.AbuseLogRepository;
+import eu.h2020.symbiote.security.repositories.AbusePlatformRepository;
 import eu.h2020.symbiote.security.repositories.EventLogRepository;
+import eu.h2020.symbiote.security.repositories.entities.AbusePlatformEntry;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +21,20 @@ public abstract class AnomalyDetectionModuleApplicationTests {
 
     @Autowired
     protected EventLogRepository eventLogRepository;
+
+    @Autowired
+    protected AbuseLogRepository abuseLogRepository;
+
+    @Autowired
+    protected AbusePlatformRepository abusePlatformRepository;
+
     protected String username = "username";
     protected String clientId = "clientId";
+    protected String platformId = "12345";
+
     @Autowired
     protected RabbitManager rabbitManager;
+
     @Value("${rabbit.queue.event}")
     protected String eventLogQueue;
     protected ObjectMapper mapper = new ObjectMapper();
@@ -29,6 +42,8 @@ public abstract class AnomalyDetectionModuleApplicationTests {
     @Before
     public void setUp() throws Exception {
         eventLogRepository.deleteAll();
+        abuseLogRepository.deleteAll();
+        abusePlatformRepository.deleteAll();
     }
 
     @Configuration

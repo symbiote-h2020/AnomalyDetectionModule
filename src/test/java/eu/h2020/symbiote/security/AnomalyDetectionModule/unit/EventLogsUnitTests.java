@@ -22,12 +22,23 @@ public class EventLogsUnitTests extends AnomalyDetectionModuleApplicationTests {
 
     @Test
     public void loginErrorTest() throws WrongCredentialsException, InvalidArgumentsException {
-        EventLogRequest eventLogRequest = new EventLogRequest(username, "", "", "12345", EventType.LOGIN_FAILED, 1L, null, null);
+        EventLogRequest eventLogRequest = new EventLogRequest(username, "", "", platformId, EventType.LOGIN_FAILED, 1L, null, null);
         assertFalse(eventLogRepository.exists(username));
 
         eventManagerService.handleEvent(eventLogRequest);
         assertTrue(eventLogRepository.exists(username));
         assertEquals(1, eventLogRepository.findOne(username).getCounter());
+        assertEquals(1, abuseLogRepository.getAllByUsername(username).size());
+        assertEquals(username, abuseLogRepository.getAllByUsername(username).get(0).getUsername());
+        assertTrue(abusePlatformRepository.exists(platformId));
+        assertEquals(1, abusePlatformRepository.findOne(platformId).getCounter());
+
+        eventLogRequest.setTimestamp(eventLogRequest.getTimestamp()+1);
+        eventManagerService.handleEvent(eventLogRequest);
+        assertEquals(2, abuseLogRepository.getAllByUsername(username).size());
+        assertEquals(2, abusePlatformRepository.findOne(platformId).getCounter());
+        assertEquals(1, abusePlatformRepository.findAll().size());
+
 //        for (int i = 0; i < 5; i++) {
 //            eventManagerService.addLoginFailEvent(eventLogRequest);
 //        }

@@ -10,7 +10,10 @@ import eu.h2020.symbiote.security.communication.IComponentClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
 import eu.h2020.symbiote.security.communication.payloads.HandleAnomalyRequest;
+import eu.h2020.symbiote.security.repositories.AbuseLogRepository;
+import eu.h2020.symbiote.security.repositories.AbusePlatformRepository;
 import eu.h2020.symbiote.security.repositories.EventLogRepository;
+import eu.h2020.symbiote.security.repositories.entities.AbusePlatformEntry;
 import eu.h2020.symbiote.security.repositories.entities.EventLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,13 +35,18 @@ public class EventManagerService {
     private int maxFailsNumber;
 
     private EventLogRepository eventLogRepository;
+    private AbuseLogRepository abuseLogRepository;
+    private AbusePlatformRepository abusePlatformRepository;
+
     @Autowired
-    EventManagerService(EventLogRepository eventLogRepository) {
+    EventManagerService(EventLogRepository eventLogRepository, AbuseLogRepository abuseLogRepository, AbusePlatformRepository abusePlatformRepository) {
 
         this.eventLogRepository = eventLogRepository;
+        this.abuseLogRepository = abuseLogRepository;
+        this.abusePlatformRepository = abusePlatformRepository;
     }
 
-    public ResponseEntity<String> handleEvent(EventLogRequest eventLogRequest) throws WrongCredentialsException, InvalidArgumentsException {
+    public ResponseEntity<String> handleEvent(EventLogRequest eventLogRequest) throws WrongCredentialsException, InvalidArgumentsException, AssertionError {
 
         EventLog event = null;
 
@@ -55,17 +63,21 @@ public class EventManagerService {
         }
         assert event != null;
         eventLogRepository.save(event);
+        abuseLogRepository.save(eventLogRequest);
 
-        if(event.getCounter()>=maxFailsNumber) {
+        this.extendAbusePlatformRepository(eventLogRequest);
+
+        if (event.getCounter() >= maxFailsNumber) {
             AAMClient coreAamClient = ClientFactory.getAAMClient(coreInterfaceAddress);
             HandleAnomalyRequest handleAnomalyRequest = new HandleAnomalyRequest(event.getIdentifier(), "", "", event.getEventType(), System.currentTimeMillis(), 100);
-            for(String platformId: event.getPlatformIds()) {
+            for (String platformId : event.getPlatformIds()) {
                 AAM platform = coreAamClient.getAvailableAAMs().getAvailableAAMs().get(platformId);
-                if(platform != null) {
+                if (platform != null) {
                     String platformAddress = platform.getAamAddress();
                     ComponentClient platformClient = new ComponentClient(platformAddress);
                     platformClient.reportAnomaly(handleAnomalyRequest);
                     event.removePlatformId(platformId);
+                    eventLogRepository.save(event);
                 }
             }
         }
@@ -99,13 +111,6 @@ public class EventManagerService {
         return event;
     }
 
-    private String buildIdentifier(EventLogRequest eventLogRequest) {
-        if (eventLogRequest.getClientIdentifier() == null
-                || eventLogRequest.getClientIdentifier().isEmpty())
-            return eventLogRequest.getUsername();
-        return eventLogRequest.getUsername() + illegalSign + eventLogRequest.getClientIdentifier();
-    }
-
     public EventLog addValidationFailEvent(EventLogRequest eventLogRequest) {
         EventLog event;
         String identifier = eventLogRequest.getJti();
@@ -119,4 +124,23 @@ public class EventManagerService {
         }
         return event;
     }
+
+    private String buildIdentifier(EventLogRequest eventLogRequest) {
+        if (eventLogRequest.getClientIdentifier() == null
+                || eventLogRequest.getClientIdentifier().isEmpty())
+            return eventLogRequest.getUsername();
+        return eventLogRequest.getUsername() + illegalSign + eventLogRequest.getClientIdentifier();
+    }
+
+    private void extendAbusePlatformRepository(EventLogRequest eventLogRequest) {
+
+        AbusePlatformEntry abusePlatformEntry = abusePlatformRepository.findOne(eventLogRequest.getPlatformId());
+        if (abusePlatformEntry != null)
+            abusePlatformEntry.setLastAbuseTimestamp(eventLogRequest.getTimestamp());
+        else
+            abusePlatformEntry = new AbusePlatformEntry(eventLogRequest.getPlatformId(), eventLogRequest.getTimestamp());
+
+        abusePlatformRepository.save(abusePlatformEntry);
+    }
+
 }

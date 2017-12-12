@@ -29,7 +29,7 @@ public class EventLogController implements IEventLog {
     public ResponseEntity<String> handleEventLog(EventLogRequest eventLogRequest) {
         try {
             return eventManagerService.handleEvent(eventLogRequest);
-        } catch (WrongCredentialsException | InvalidArgumentsException e) {
+        } catch (WrongCredentialsException | InvalidArgumentsException | AssertionError e) {
             log.error(e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
