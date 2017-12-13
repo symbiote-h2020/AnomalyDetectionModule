@@ -31,6 +31,8 @@ public abstract class AnomalyDetectionModuleApplicationTests {
     protected String username = "username";
     protected String clientId = "clientId";
     protected String platformId = "12345";
+    protected String platformId2 = "23456";
+    protected String jti = "9876";
 
     @Autowired
     protected RabbitManager rabbitManager;

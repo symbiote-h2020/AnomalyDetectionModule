@@ -14,5 +14,6 @@ public interface IComponentClient {
      */
     String reportAnomaly(HandleAnomalyRequest handleAnomalyRequest) throws InvalidArgumentsException, WrongCredentialsException;
 
+    String reportLowPlatformReputation(String platformId);
 
 }

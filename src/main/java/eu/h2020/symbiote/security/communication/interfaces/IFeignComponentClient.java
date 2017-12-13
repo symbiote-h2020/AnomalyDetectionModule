@@ -12,4 +12,7 @@ public interface IFeignComponentClient {
     @Headers("Content-Type: application/json")
     Response reportAnomaly(HandleAnomalyRequest handleAnomalyRequest);
 
+    @RequestLine("POST " + SecurityConstants.LOW_PLATFORM_REPUTATION)
+    @Headers("Content-Type: application/json")
+    Response handleLowPlatformReputationRequest(String platformId);
 }

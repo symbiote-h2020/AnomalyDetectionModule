@@ -42,4 +42,10 @@ public class ComponentClient implements IComponentClient {
         return response.body().toString();
     }
 
+    @Override
+    public String reportLowPlatformReputation(String platformId) {
+        Response response = feignClient.handleLowPlatformReputationRequest(platformId);
+        return response.body().toString();
+    }
+
 }

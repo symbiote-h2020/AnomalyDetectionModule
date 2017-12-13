@@ -1,6 +1,5 @@
 package eu.h2020.symbiote.security.repositories.entities;
 
-import eu.h2020.symbiote.security.commons.SecurityConstants;
 import org.springframework.data.annotation.Id;
 
 public class AbusePlatformEntry {

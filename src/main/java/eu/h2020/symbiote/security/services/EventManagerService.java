@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
@@ -31,8 +32,14 @@ public class EventManagerService {
     @Value("${adm.environment.coreInterfaceAddress:https://localhost:8443}")
     private String coreInterfaceAddress;
 
+    @Value("${adm.environment.trustManagerAddress}")
+    private String trustManagerAddress;
+
     @Value("${adm.maxFailsNumber}")
     private int maxFailsNumber;
+
+    @Value("${adm.platform.reputation}")
+    private float boundaryReputation;
 
     private EventLogRepository eventLogRepository;
     private AbuseLogRepository abuseLogRepository;
@@ -66,6 +73,13 @@ public class EventManagerService {
         abuseLogRepository.save(eventLogRequest);
 
         this.extendAbusePlatformRepository(eventLogRequest);
+        String selectedPlatformId = eventLogRequest.getPlatformId();
+        float platformReputation = this.platformReputation(selectedPlatformId);
+        if (platformReputation > boundaryReputation) {
+            ComponentClient componentClient = new ComponentClient(trustManagerAddress);
+            componentClient.reportLowPlatformReputation(selectedPlatformId);
+        }
+
 
         if (event.getCounter() >= maxFailsNumber) {
             AAMClient coreAamClient = ClientFactory.getAAMClient(coreInterfaceAddress);
@@ -142,5 +156,25 @@ public class EventManagerService {
 
         abusePlatformRepository.save(abusePlatformEntry);
     }
+
+    /**
+     * Calculates reputation as ratio of entries for platform specified in param to average of all platform entries.
+     *
+     * @param platformId identifier of platform to check reputation
+     * @author Piotr Jakubowski (PSNC)
+     */
+    public float platformReputation(String platformId) {
+
+        if (!abusePlatformRepository.exists(platformId))
+            return 0;
+        int sumEntries = 0;
+        AbusePlatformEntry selectedPlatform = abusePlatformRepository.findOne(platformId);
+        List<AbusePlatformEntry> platformList = abusePlatformRepository.findAll();
+        for (AbusePlatformEntry platform : platformList) {
+            sumEntries += platform.getCounter();
+        }
+        return selectedPlatform.getCounter() / (sumEntries / (float) platformList.size());
+    }
+
 
 }
