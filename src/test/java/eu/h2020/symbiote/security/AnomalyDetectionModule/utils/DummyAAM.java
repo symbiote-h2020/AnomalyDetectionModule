@@ -19,9 +19,13 @@ public class DummyAAM {
 
 
     @PostMapping(path = PATH + SecurityConstants.ANOMALY_DETECTION_MESSAGE, produces = "application/json")
-    public ResponseEntity<String> acceptAnomaly(@RequestBody HandleAnomalyRequest handleAnomalyRequest)
-    {
+    public ResponseEntity<String> acceptAnomaly(@RequestBody HandleAnomalyRequest handleAnomalyRequest) {
         return new ResponseEntity<>("true", HttpStatus.OK);
+    }
+
+    @PostMapping(path = PATH + SecurityConstants.LOW_PLATFORM_REPUTATION, produces = "application/json")
+    public ResponseEntity<String> acceptLowReputationRequest(@RequestBody String platformId) {
+        return new ResponseEntity<>("", HttpStatus.OK);
     }
 
 }

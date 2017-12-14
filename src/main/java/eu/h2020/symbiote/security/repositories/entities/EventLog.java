@@ -26,10 +26,11 @@ public class EventLog {
 
     /**
      * Constructor for entity in repositories.
+     *
      * @param identifier identifier of the user/component/token
      * @param firstError timestamp of the first error in the specified time
-     * @param lastError timestamp of the last error in the specified time
-     * @param eventType type of the error
+     * @param lastError  timestamp of the last error in the specified time
+     * @param eventType  type of the error
      */
 
     public EventLog(String identifier, long firstError, long lastError, EventType eventType) {
@@ -71,7 +72,8 @@ public class EventLog {
     }
 
     public void addPlatformId(String platformId) {
-        this.platformIds.add(platformId);
+        if (!this.platformIds.contains(platformId))
+            this.platformIds.add(platformId);
     }
 
     public void removePlatformId(String platformId) {

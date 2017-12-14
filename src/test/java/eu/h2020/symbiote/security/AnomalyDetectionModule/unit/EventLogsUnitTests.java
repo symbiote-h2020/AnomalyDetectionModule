@@ -7,36 +7,51 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsExce
 import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
 import eu.h2020.symbiote.security.repositories.entities.AbusePlatformEntry;
 import eu.h2020.symbiote.security.repositories.entities.EventLog;
-import eu.h2020.symbiote.security.services.EventManagerService;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Arrays;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 import static org.junit.Assert.*;
 
+@RunWith(SpringRunner.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ContextConfiguration
 public class EventLogsUnitTests extends AnomalyDetectionModuleApplicationTests {
 
-
-    @Autowired
-    EventManagerService eventManagerService;
-
     private EventLogRequest eventLogRequest = null;
-    // TODO: Add mocked aamClient
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        serverAddress = "http://localhost:" + port + "/test/caam";
+        dummyCoreAAM.port = port;
         eventLogRequest = new EventLogRequest(username, clientId, jti, platformId, EventType.LOGIN_FAILED, 1L, null, null);
+        oldCoreAAMAddress = (String) ReflectionTestUtils.getField(eventManagerService, "coreInterfaceAddress");
+        oldTrustManagerAddress = (String) ReflectionTestUtils.getField(eventManagerService, "trustManagerAddress");
+        ReflectionTestUtils.setField(eventManagerService, "coreInterfaceAddress", serverAddress);
+        ReflectionTestUtils.setField(eventManagerService, "trustManagerAddress", serverAddress);
+    }
 
+    @After
+    public void tearDown() {
+        ReflectionTestUtils.setField(eventManagerService, "coreInterfaceAddress", oldCoreAAMAddress);
+        ReflectionTestUtils.setField(eventManagerService, "trustManagerAddress", oldTrustManagerAddress);
     }
 
     @Test
     public void loginErrorTest() throws WrongCredentialsException, InvalidArgumentsException {
         eventLogRequest.setEventType(EventType.LOGIN_FAILED);
         assertFalse(eventLogRepository.exists(username));
+
+        // log first login_failed abuse
         eventManagerService.handleEvent(eventLogRequest);
         assertTrue(eventLogRepository.exists(username));
         assertEquals(1, eventLogRepository.findOne(username).getCounter());
@@ -45,20 +60,18 @@ public class EventLogsUnitTests extends AnomalyDetectionModuleApplicationTests {
         assertTrue(abusePlatformRepository.exists(platformId));
         assertEquals(1, abusePlatformRepository.findOne(platformId).getCounter());
 
+        // log second login_failed abuse
         eventLogRequest.setTimestamp(eventLogRequest.getTimestamp() + 1);
         eventManagerService.handleEvent(eventLogRequest);
         assertEquals(2, abuseLogRepository.getAllByUsername(username).size());
         assertEquals(2, abusePlatformRepository.findOne(platformId).getCounter());
         assertEquals(1, abusePlatformRepository.findAll().size());
 
-
-//        for (int i = 0; i < 5; i++) {
-//            eventManagerService.addLoginFailEvent(eventLogRequest);
-//        }
-//        assertEquals(6, eventLogRepository.findOne(username).getCounter());
-//        eventLogRequest = new EventLogRequest(username, "", "", "", EventType.LOGIN_FAILED, 2L + SecurityConstants.ANOMALY_DETECTION_DELTA, null, null);
-//        eventManagerService.addLoginFailEvent(eventLogRequest);
-//        assertEquals(1, eventLogRepository.findOne(username).getCounter());
+        // max fail number exceed
+        eventManagerService.handleEvent(eventLogRequest);
+        eventManagerService.handleEvent(eventLogRequest);
+        assertTrue(eventLogRepository.exists(username));
+        assertEquals(0, eventLogRepository.findOne(username).getPlatformIds().size());
     }
 
     @Test
@@ -78,14 +91,6 @@ public class EventLogsUnitTests extends AnomalyDetectionModuleApplicationTests {
         eventManagerService.handleEvent(eventLogRequest);
         assertTrue(eventLogRepository.exists(username));
 
-
-//        for (int i = 0; i < 5; i++) {
-//            eventManagerService.addHomeTokenAcquisitionFailEvent(eventLogRequest);
-//        }
-//        assertEquals(6, eventLogRepository.findOne(username + illegalSign + clientId).getCounter());
-//        eventLogRequest = new EventLogRequest(username, clientId, "", "", EventType.ACQUISITION_FAILED, 2L + SecurityConstants.ANOMALY_DETECTION_DELTA, null, null);
-//        eventManagerService.addHomeTokenAcquisitionFailEvent(eventLogRequest);
-//        assertEquals(1, eventLogRepository.findOne(username + illegalSign + clientId).getCounter());
     }
 
     @Test
@@ -100,13 +105,6 @@ public class EventLogsUnitTests extends AnomalyDetectionModuleApplicationTests {
         eventManagerService.handleEvent(eventLogRequest);
         assertTrue(eventLogRepository.exists(jti));
         assertEquals(2, eventLogRepository.findOne(jti).getPlatformIds().size());
-//        for (int i = 0; i < 5; i++) {
-//            eventManagerService.handleEvent(eventLogRequest);
-//        }
-//        assertEquals(6, eventLogRepository.findOne("12345").getCounter());
-//        eventLogRequest = new EventLogRequest(username, clientId, "12345", "", EventType.VALIDATION_FAILED, 2L + SecurityConstants.ANOMALY_DETECTION_DELTA, null, null);
-//        eventManagerService.handleEvent(eventLogRequest);
-//        assertEquals(1, eventLogRepository.findOne("12345").getCounter());
     }
 
     @Test
@@ -157,6 +155,10 @@ public class EventLogsUnitTests extends AnomalyDetectionModuleApplicationTests {
         eventManagerService.handleEvent(eventLogRequest);
         assert eventManagerService.platformReputation(platformId2) == 2 / 3f;
         assert eventManagerService.platformReputation("non-existing-platform") == 0;
+
+        // boundary reputation pass
+        eventManagerService.handleEvent(eventLogRequest);
+        eventManagerService.handleEvent(eventLogRequest);
 
     }
 

@@ -41,30 +41,16 @@ public class EventLogRequestConsumerService extends DefaultConsumer {
         String message = new String(body, "UTF-8");
         ObjectMapper om = new ObjectMapper();
         EventLogRequest eventLogRequest;
-            try {
-                eventLogRequest = om.readValue(message, eu.h2020.symbiote.security.communication.payloads.EventLogRequest.class);
-                log.info("I received log from AAM: " + om.writeValueAsString(eventLogRequest));
-                if (eventLogRequest.getUsername() == null
-                        || eventLogRequest.getUsername().isEmpty())
-                    throw new IllegalArgumentException("Username/identifier should be provided");
-                switch (eventLogRequest.getEventType()) {
-                    case LOGIN_FAILED:
-                        eventManagerService.addLoginFailEvent(eventLogRequest);
-                        break;
-                    case ACQUISITION_FAILED:
-                        eventManagerService.addHomeTokenAcquisitionFailEvent(eventLogRequest);
-                        break;
-                    case VALIDATION_FAILED:
-                        eventManagerService.addValidationFailEvent(eventLogRequest);
-                        break;
-                    default:
-                        String msg = "Event type of AnomalyDetectionRequest was unrecognized";
-                        log.error(msg);
-                        throw new SecurityException(msg);
-                }
-            } catch (Exception e) {
-                log.error(e);
-            }
+        try {
+            eventLogRequest = om.readValue(message, eu.h2020.symbiote.security.communication.payloads.EventLogRequest.class);
+            log.info("I received log from AAM: " + om.writeValueAsString(eventLogRequest));
+            if (eventLogRequest.getUsername() == null
+                    || eventLogRequest.getUsername().isEmpty())
+                throw new IllegalArgumentException("Username/identifier should be provided");
+            eventManagerService.handleEvent(eventLogRequest);
+        } catch (Exception e) {
+            log.error(e);
+        }
     }
 
 

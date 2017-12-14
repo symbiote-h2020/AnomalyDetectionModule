@@ -6,7 +6,6 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsExce
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.ComponentClient;
-import eu.h2020.symbiote.security.communication.IComponentClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
 import eu.h2020.symbiote.security.communication.payloads.HandleAnomalyRequest;
@@ -21,8 +20,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 
@@ -53,9 +53,15 @@ public class EventManagerService {
         this.abusePlatformRepository = abusePlatformRepository;
     }
 
+    /**
+     * Method used to handle incoming abuse event
+     *
+     * @param eventLogRequest request describing event
+     */
+
     public ResponseEntity<String> handleEvent(EventLogRequest eventLogRequest) throws WrongCredentialsException, InvalidArgumentsException, AssertionError {
 
-        EventLog event = null;
+        EventLog event;
 
         switch (eventLogRequest.getEventType()) {
             case LOGIN_FAILED:
@@ -67,6 +73,9 @@ public class EventManagerService {
             case ACQUISITION_FAILED:
                 event = addHomeTokenAcquisitionFailEvent(eventLogRequest);
                 break;
+            default:
+                String msg = "Event type of AnomalyDetectionRequest unrecognized";
+                throw new SecurityException(msg);
         }
         assert event != null;
         eventLogRepository.save(event);
@@ -84,8 +93,10 @@ public class EventManagerService {
         if (event.getCounter() >= maxFailsNumber) {
             AAMClient coreAamClient = ClientFactory.getAAMClient(coreInterfaceAddress);
             HandleAnomalyRequest handleAnomalyRequest = new HandleAnomalyRequest(event.getIdentifier(), "", "", event.getEventType(), System.currentTimeMillis(), 100);
-            for (String platformId : event.getPlatformIds()) {
-                AAM platform = coreAamClient.getAvailableAAMs().getAvailableAAMs().get(platformId);
+            List<String> platformIds = new ArrayList<>(event.getPlatformIds());
+            Map<String, AAM> availableAAMs = coreAamClient.getAvailableAAMs().getAvailableAAMs();
+            for (String platformId : platformIds) {
+                AAM platform = availableAAMs.get(platformId);
                 if (platform != null) {
                     String platformAddress = platform.getAamAddress();
                     ComponentClient platformClient = new ComponentClient(platformAddress);
@@ -98,44 +109,41 @@ public class EventManagerService {
         return ResponseEntity.status(HttpStatus.OK).body("");
     }
 
-    public EventLog addLoginFailEvent(EventLogRequest eventLogRequest) {
+    private EventLog addLoginFailEvent(EventLogRequest eventLogRequest) {
         EventLog event;
-        if (!eventLogRepository.exists(eventLogRequest.getUsername())) {
+        if (!eventLogRepository.exists(eventLogRequest.getUsername()))
             event = new EventLog(eventLogRequest.getUsername(), eventLogRequest.getTimestamp(), eventLogRequest.getTimestamp(), EventType.LOGIN_FAILED);
-            event.addPlatformId(eventLogRequest.getPlatformId());
-        } else {
+        else {
             event = eventLogRepository.findOne(eventLogRequest.getUsername());
             event.setLastError(eventLogRequest.getTimestamp());
-            event.addPlatformId(eventLogRequest.getPlatformId());
         }
+        event.addPlatformId(eventLogRequest.getPlatformId());
         return event;
     }
 
-    public EventLog addHomeTokenAcquisitionFailEvent(EventLogRequest eventLogRequest) {
+    private EventLog addHomeTokenAcquisitionFailEvent(EventLogRequest eventLogRequest) {
         EventLog event;
         String identifier = buildIdentifier(eventLogRequest);
-        if (!eventLogRepository.exists(identifier)) {
+        if (!eventLogRepository.exists(identifier))
             event = new EventLog(identifier, eventLogRequest.getTimestamp(), eventLogRequest.getTimestamp(), EventType.ACQUISITION_FAILED);
-            event.addPlatformId(eventLogRequest.getPlatformId());
-        } else {
+        else {
             event = eventLogRepository.findOne(identifier);
             event.setLastError(eventLogRequest.getTimestamp());
-            event.addPlatformId(eventLogRequest.getPlatformId());
         }
+        event.addPlatformId(eventLogRequest.getPlatformId());
         return event;
     }
 
-    public EventLog addValidationFailEvent(EventLogRequest eventLogRequest) {
+    private EventLog addValidationFailEvent(EventLogRequest eventLogRequest) {
         EventLog event;
         String identifier = eventLogRequest.getJti();
-        if (!eventLogRepository.exists(identifier)) {
+        if (!eventLogRepository.exists(identifier))
             event = new EventLog(identifier, eventLogRequest.getTimestamp(), eventLogRequest.getTimestamp(), EventType.VALIDATION_FAILED);
-            event.addPlatformId(eventLogRequest.getPlatformId());
-        } else {
+        else {
             event = eventLogRepository.findOne(identifier);
             event.setLastError(eventLogRequest.getTimestamp());
-            event.addPlatformId(eventLogRequest.getPlatformId());
         }
+        event.addPlatformId(eventLogRequest.getPlatformId());
         return event;
     }
 
