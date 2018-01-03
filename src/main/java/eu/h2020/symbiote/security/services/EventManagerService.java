@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.clients.ClientFactory;
 import eu.h2020.symbiote.security.commons.enums.EventType;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.AAMClient;
@@ -14,6 +15,8 @@ import eu.h2020.symbiote.security.repositories.AbusePlatformRepository;
 import eu.h2020.symbiote.security.repositories.EventLogRepository;
 import eu.h2020.symbiote.security.repositories.entities.AbusePlatformEntry;
 import eu.h2020.symbiote.security.repositories.entities.EventLog;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -41,17 +44,13 @@ public class EventManagerService {
     @Value("${adm.platform.reputation}")
     private float boundaryReputation;
 
-    private EventLogRepository eventLogRepository;
-    private AbuseLogRepository abuseLogRepository;
-    private AbusePlatformRepository abusePlatformRepository;
-
+    private static Log log = LogFactory.getLog(EventManagerService.class);
     @Autowired
-    EventManagerService(EventLogRepository eventLogRepository, AbuseLogRepository abuseLogRepository, AbusePlatformRepository abusePlatformRepository) {
-
-        this.eventLogRepository = eventLogRepository;
-        this.abuseLogRepository = abuseLogRepository;
-        this.abusePlatformRepository = abusePlatformRepository;
-    }
+    private EventLogRepository eventLogRepository;
+    @Autowired
+    private AbuseLogRepository abuseLogRepository;
+    @Autowired
+    private AbusePlatformRepository abusePlatformRepository;
 
     /**
      * Method used to handle incoming abuse event
@@ -94,7 +93,13 @@ public class EventManagerService {
             AAMClient coreAamClient = ClientFactory.getAAMClient(coreInterfaceAddress);
             HandleAnomalyRequest handleAnomalyRequest = new HandleAnomalyRequest(event.getIdentifier(), "", "", event.getEventType(), System.currentTimeMillis(), 100);
             List<String> platformIds = new ArrayList<>(event.getPlatformIds());
-            Map<String, AAM> availableAAMs = coreAamClient.getAvailableAAMs().getAvailableAAMs();
+            Map<String, AAM> availableAAMs;
+            try {
+                availableAAMs = coreAamClient.getAvailableAAMs().getAvailableAAMs();
+            } catch (AAMException e) {
+                log.error("Couldn't establish connection with core AAM");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("");
+            }
             for (String platformId : platformIds) {
                 AAM platform = availableAAMs.get(platformId);
                 if (platform != null) {

@@ -8,13 +8,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertificateException;
 import java.util.HashMap;
 
 
@@ -23,7 +19,7 @@ public class DummyCoreAAM {
     private static final Log log = LogFactory.getLog(DummyAAM.class);
     private static final String PATH = "/test/caam";
 
-    private AvailableAAMsCollection aams = new AvailableAAMsCollection();
+    private AvailableAAMsCollection aams = new AvailableAAMsCollection(new HashMap<>());
     public int port;
     private static final String platformId = "12345";
 
@@ -33,7 +29,7 @@ public class DummyCoreAAM {
 
 
     @GetMapping(path = PATH + SecurityConstants.AAM_GET_AVAILABLE_AAMS)
-    public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+    public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() {
         if (aams.getAvailableAAMs().isEmpty()) {
             aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("http://localhost:" + port + PATH,
                     SecurityConstants.CORE_AAM_FRIENDLY_NAME,

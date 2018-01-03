@@ -1,54 +1,63 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
 import eu.h2020.symbiote.security.services.EventManagerService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.amqp.rabbit.annotation.Exchange;
+import org.springframework.amqp.rabbit.annotation.Queue;
+import org.springframework.amqp.rabbit.annotation.QueueBinding;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
-public class EventLogRequestConsumerService extends DefaultConsumer {
+@Component
+public class EventLogRequestConsumerService {
 
     private static Log log = LogFactory.getLog(EventLogRequestConsumerService.class);
     private final EventManagerService eventManagerService;
 
-    public EventLogRequestConsumerService(Channel channel, EventManagerService eventManagerService) {
-
-        super(channel);
+    public EventLogRequestConsumerService(EventManagerService eventManagerService) {
         this.eventManagerService = eventManagerService;
     }
 
-    /**
-     * Called when a <code><b>basic.deliver</b></code> is received for this consumer.
-     *
-     * @param consumerTag the <i>consumer tag</i> associated with the consumer
-     * @param envelope    packaging data for the message
-     * @param properties  content header data for the message
-     * @param body        the message body (opaque, client-specific byte array)
-     * @throws IOException if the consumer encounters an I/O error while processing the message
-     * @see Envelope
-     */
-    @Override
-    public void handleDelivery(String consumerTag, Envelope envelope,
-                               AMQP.BasicProperties properties, byte[] body)
-            throws IOException {
+    @RabbitListener(bindings = @QueueBinding(
+            value = @Queue(
+                    value = "${rabbit.queue.event}",
+                    durable = "${rabbit.exchange.adm.durable}",
+                    autoDelete = "${rabbit.exchange.adm.autodelete}",
+                    exclusive = "false"),
+            exchange = @Exchange(
+                    value = "${rabbit.exchange.adm.name}",
+                    ignoreDeclarationExceptions = "true",
+                    durable = "${rabbit.exchange.adm.durable}",
+                    autoDelete = "${rabbit.exchange.adm.autodelete}",
+                    internal = "${rabbit.exchange.adm.internal}",
+                    type = "${rabbit.exchange.adm.type}"),
+            key = "${rabbit.routingKey.event}"))
+    public void eventLog(byte[] body) {
 
-        String message = new String(body, "UTF-8");
-        ObjectMapper om = new ObjectMapper();
-        EventLogRequest eventLogRequest;
+        String message = null;
         try {
-            eventLogRequest = om.readValue(message, eu.h2020.symbiote.security.communication.payloads.EventLogRequest.class);
+            message = new String(body, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            log.error(e);
+        }
+        ObjectMapper om = new ObjectMapper();
+
+        try {
+            EventLogRequest eventLogRequest = om.readValue(message, EventLogRequest.class);
             log.info("I received log from AAM: " + om.writeValueAsString(eventLogRequest));
             if (eventLogRequest.getUsername() == null
                     || eventLogRequest.getUsername().isEmpty())
                 throw new IllegalArgumentException("Username/identifier should be provided");
             eventManagerService.handleEvent(eventLogRequest);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | InvalidArgumentsException | WrongCredentialsException | IOException e) {
             log.error(e);
         }
     }

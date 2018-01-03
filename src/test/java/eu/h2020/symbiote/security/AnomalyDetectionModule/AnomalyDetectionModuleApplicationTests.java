@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.AnomalyDetectionModule.utils.DummyAAM;
 import eu.h2020.symbiote.security.AnomalyDetectionModule.utils.DummyCoreAAM;
 import eu.h2020.symbiote.security.communication.IComponentClient;
-import eu.h2020.symbiote.security.listeners.amqp.RabbitManager;
 import eu.h2020.symbiote.security.repositories.AbuseLogRepository;
 import eu.h2020.symbiote.security.repositories.AbusePlatformRepository;
 import eu.h2020.symbiote.security.repositories.EventLogRepository;
@@ -49,9 +48,6 @@ public abstract class AnomalyDetectionModuleApplicationTests {
 
     @Autowired
     protected DummyAAM dummyAAM;
-
-    @Autowired
-    protected RabbitManager rabbitManager;
 
     @Value("${rabbit.queue.event}")
     protected String eventLogQueue;

@@ -13,9 +13,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.io.IOException;
-import java.util.concurrent.TimeoutException;
-
 import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringRunner.class)
@@ -30,7 +27,9 @@ public class AnomalyReportTests extends AnomalyDetectionModuleApplicationTests {
     }
 
     @Test
-    public void reportAnomalySuccessTest() throws IOException, TimeoutException, WrongCredentialsException, InvalidArgumentsException {
+    public void reportAnomalySuccessTest() throws
+            WrongCredentialsException,
+            InvalidArgumentsException {
 
         HandleAnomalyRequest handleAnomalyRequest = new HandleAnomalyRequest(username, clientId, jti, EventType.VALIDATION_FAILED, System.currentTimeMillis() + 1000000, 1000000);
 
