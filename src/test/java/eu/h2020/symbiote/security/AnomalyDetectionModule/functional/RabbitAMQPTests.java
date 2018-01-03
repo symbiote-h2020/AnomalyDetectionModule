@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.AnomalyDetectionModule.functional;
 
 import eu.h2020.symbiote.security.AnomalyDetectionModule.AnomalyDetectionModuleApplicationTests;
 import eu.h2020.symbiote.security.commons.enums.EventType;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,7 +24,7 @@ public class RabbitAMQPTests extends AnomalyDetectionModuleApplicationTests {
     RabbitTemplate rabbitTemplate;
 
     @Test
-    public void communicationTest() throws IOException, TimeoutException {
+    public void communicationTest() throws IOException, TimeoutException, WrongCredentialsException {
         EventLogRequest eventLogRequest = new EventLogRequest(username, clientId, jti, platformId, EventType.LOGIN_FAILED, 0L, null, null);
         System.out.println(eventLogQueue);
         rabbitTemplate.convertAndSend(eventLogQueue, mapper.writeValueAsString(

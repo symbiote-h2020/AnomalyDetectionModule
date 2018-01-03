@@ -146,6 +146,12 @@ public class EventLogsUnitTests extends AnomalyDetectionModuleApplicationTests {
 
     }
 
+    @Test(expected = SecurityException.class)
+    public void unrecognizedEventTypeTest() throws WrongCredentialsException, InvalidArgumentsException {
+        eventLogRequest.setEventType(EventType.NULL);
+        eventManagerService.handleEvent(eventLogRequest);
+    }
+
     @Test
     public void platformReputationTest() throws WrongCredentialsException, InvalidArgumentsException {
         eventLogRequest.setEventType(EventType.VALIDATION_FAILED);
