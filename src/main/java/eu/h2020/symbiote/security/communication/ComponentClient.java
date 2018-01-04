@@ -42,9 +42,27 @@ public class ComponentClient implements IComponentClient {
         return response.body().toString();
     }
 
+    /**
+     * Allow to low platform reputation.
+     *
+     * @param platformId platform with low reputation.
+     * @return true/false depending on reporting success
+     */
     @Override
     public String reportLowPlatformReputation(String platformId) {
         Response response = feignClient.handleLowPlatformReputationRequest(platformId);
+        return response.body().toString();
+    }
+
+    /**
+     * Allow to notify source aam about suspicious actor.
+     *
+     * @param handleAnomalyRequest required to report detected anomaly.
+     * @return true/false depending on notifying status
+     */
+    @Override
+    public String notifySourceAAM(HandleAnomalyRequest handleAnomalyRequest) throws InvalidArgumentsException, WrongCredentialsException {
+        Response response = feignClient.notifySourceAAM(handleAnomalyRequest);
         return response.body().toString();
     }
 

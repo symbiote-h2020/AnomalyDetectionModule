@@ -22,4 +22,13 @@ public interface IComponentClient {
      */
     String reportLowPlatformReputation(String platformId);
 
+    /**
+     * Allow to notify source aam about suspicious actor.
+     *
+     * @param handleAnomalyRequest required to report detected anomaly.
+     * @return true/false depending on notifying status
+     */
+    String notifySourceAAM(HandleAnomalyRequest handleAnomalyRequest) throws InvalidArgumentsException, WrongCredentialsException;
+
+
 }

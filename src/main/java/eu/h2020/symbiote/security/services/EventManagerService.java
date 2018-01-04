@@ -77,6 +77,9 @@ public class EventManagerService {
                 throw new SecurityException(msg);
         }
         assert event != null;
+
+
+        event.addPlatformId(eventLogRequest.getPlatformId());
         eventLogRepository.save(event);
         abuseLogRepository.save(eventLogRequest);
 
@@ -110,6 +113,15 @@ public class EventManagerService {
                     eventLogRepository.save(event);
                 }
             }
+            if (eventLogRequest.getSourcePlatformId() != null) {
+                AAM sourcePlatform = availableAAMs.get(eventLogRequest.getSourcePlatformId());
+                if(sourcePlatform != null) {
+                    ComponentClient sourcePlatformClient = new ComponentClient(sourcePlatform.getAamAddress());
+                    sourcePlatformClient.notifySourceAAM(handleAnomalyRequest);
+                }
+            }
+
+
         }
         return ResponseEntity.status(HttpStatus.OK).body("");
     }
@@ -122,7 +134,6 @@ public class EventManagerService {
             event = eventLogRepository.findOne(eventLogRequest.getUsername());
             event.setLastError(eventLogRequest.getTimestamp());
         }
-        event.addPlatformId(eventLogRequest.getPlatformId());
         return event;
     }
 
@@ -135,7 +146,6 @@ public class EventManagerService {
             event = eventLogRepository.findOne(identifier);
             event.setLastError(eventLogRequest.getTimestamp());
         }
-        event.addPlatformId(eventLogRequest.getPlatformId());
         return event;
     }
 
@@ -148,7 +158,6 @@ public class EventManagerService {
             event = eventLogRepository.findOne(identifier);
             event.setLastError(eventLogRequest.getTimestamp());
         }
-        event.addPlatformId(eventLogRequest.getPlatformId());
         return event;
     }
 
