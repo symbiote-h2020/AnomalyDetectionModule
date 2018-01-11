@@ -1,12 +1,12 @@
 package eu.h2020.symbiote.security.services;
 
-import eu.h2020.symbiote.security.clients.ClientFactory;
 import eu.h2020.symbiote.security.commons.enums.EventType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.ComponentClient;
+import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
 import eu.h2020.symbiote.security.communication.payloads.HandleAnomalyRequest;
@@ -90,11 +90,9 @@ public class EventManagerService {
             ComponentClient componentClient = new ComponentClient(trustManagerAddress);
             componentClient.reportLowPlatformReputation(selectedPlatformId);
         }
-
-
         if (event.getCounter() >= maxFailsNumber) {
-            AAMClient coreAamClient = ClientFactory.getAAMClient(coreInterfaceAddress);
-            HandleAnomalyRequest handleAnomalyRequest = new HandleAnomalyRequest(event.getIdentifier(), "", "", event.getEventType(), System.currentTimeMillis(), 100);
+            IAAMClient coreAamClient = new AAMClient(coreInterfaceAddress);
+            HandleAnomalyRequest handleAnomalyRequest = new HandleAnomalyRequest(event.getIdentifier(), event.getEventType(), System.currentTimeMillis(), 60000);
             List<String> platformIds = new ArrayList<>(event.getPlatformIds());
             Map<String, AAM> availableAAMs;
             try {
@@ -128,6 +126,9 @@ public class EventManagerService {
 
     private EventLog addLoginFailEvent(EventLogRequest eventLogRequest) {
         EventLog event;
+        if (eventLogRequest.getUsername() == null || eventLogRequest.getUsername().isEmpty()) {
+            throw new IllegalArgumentException();
+        }
         if (!eventLogRepository.exists(eventLogRequest.getUsername()))
             event = new EventLog(eventLogRequest.getUsername(), eventLogRequest.getTimestamp(), eventLogRequest.getTimestamp(), EventType.LOGIN_FAILED);
         else {
@@ -151,6 +152,9 @@ public class EventManagerService {
 
     private EventLog addValidationFailEvent(EventLogRequest eventLogRequest) {
         EventLog event;
+        if (eventLogRequest.getJti() == null || eventLogRequest.getJti().isEmpty()) {
+            throw new IllegalArgumentException();
+        }
         String identifier = eventLogRequest.getJti();
         if (!eventLogRepository.exists(identifier))
             event = new EventLog(identifier, eventLogRequest.getTimestamp(), eventLogRequest.getTimestamp(), EventType.VALIDATION_FAILED);
@@ -162,10 +166,15 @@ public class EventManagerService {
     }
 
     private String buildIdentifier(EventLogRequest eventLogRequest) {
-        if (eventLogRequest.getClientIdentifier() == null
-                || eventLogRequest.getClientIdentifier().isEmpty())
-            return eventLogRequest.getUsername();
-        return eventLogRequest.getUsername() + illegalSign + eventLogRequest.getClientIdentifier();
+        if (eventLogRequest.getComponentId() != null && eventLogRequest.getPlatformId() != null &&
+                !eventLogRequest.getComponentId().isEmpty() && !eventLogRequest.getPlatformId().isEmpty()) {
+            return eventLogRequest.getPlatformId() + illegalSign + eventLogRequest.getComponentId();
+        }
+        if (eventLogRequest.getUsername() != null && eventLogRequest.getClientIdentifier() != null &&
+                !eventLogRequest.getUsername().isEmpty() && !eventLogRequest.getClientIdentifier().isEmpty()) {
+            return eventLogRequest.getUsername() + illegalSign + eventLogRequest.getClientIdentifier();
+        }
+        throw new SecurityException("Wrong data in EventLogRequest.");
     }
 
     private void extendAbusePlatformRepository(EventLogRequest eventLogRequest) {

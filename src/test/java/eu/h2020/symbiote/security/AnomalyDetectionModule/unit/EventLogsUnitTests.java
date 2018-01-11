@@ -33,7 +33,7 @@ public class EventLogsUnitTests extends AnomalyDetectionModuleApplicationTests {
         super.setUp();
         serverAddress = "http://localhost:" + port + "/test/caam";
         dummyCoreAAM.port = port;
-        eventLogRequest = new EventLogRequest(username, clientId, jti, platformId, EventType.LOGIN_FAILED, 1L, null, null);
+        eventLogRequest = new EventLogRequest(username, clientId, jti, "", platformId, EventType.LOGIN_FAILED, "", 1L, null, null);
         oldCoreAAMAddress = (String) ReflectionTestUtils.getField(eventManagerService, "coreInterfaceAddress");
         oldTrustManagerAddress = (String) ReflectionTestUtils.getField(eventManagerService, "trustManagerAddress");
         ReflectionTestUtils.setField(eventManagerService, "coreInterfaceAddress", serverAddress);
@@ -74,7 +74,7 @@ public class EventLogsUnitTests extends AnomalyDetectionModuleApplicationTests {
         assertEquals(0, eventLogRepository.findOne(username).getPlatformIds().size());
     }
 
-    @Test
+    @Test(expected = SecurityException.class)
     public void homeTokenAcquisitionErrorTest() throws WrongCredentialsException, InvalidArgumentsException {
         eventLogRequest.setEventType(EventType.ACQUISITION_FAILED);
         assertFalse(eventLogRepository.exists(username + illegalSign + clientId));
@@ -89,7 +89,6 @@ public class EventLogsUnitTests extends AnomalyDetectionModuleApplicationTests {
 
         eventLogRequest.setClientIdentifier(null);
         eventManagerService.handleEvent(eventLogRequest);
-        assertTrue(eventLogRepository.exists(username));
 
     }
 

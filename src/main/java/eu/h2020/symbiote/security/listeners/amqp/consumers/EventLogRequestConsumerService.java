@@ -53,9 +53,6 @@ public class EventLogRequestConsumerService {
         try {
             EventLogRequest eventLogRequest = om.readValue(message, EventLogRequest.class);
             log.info("I received log from AAM: " + om.writeValueAsString(eventLogRequest));
-            if (eventLogRequest.getUsername() == null
-                    || eventLogRequest.getUsername().isEmpty())
-                throw new IllegalArgumentException("Username/identifier should be provided");
             eventManagerService.handleEvent(eventLogRequest);
         } catch (IllegalArgumentException | InvalidArgumentsException | WrongCredentialsException | IOException e) {
             log.error(e);

@@ -2,7 +2,6 @@ package eu.h2020.symbiote.security.AnomalyDetectionModule.functional;
 
 import eu.h2020.symbiote.security.AnomalyDetectionModule.AnomalyDetectionModuleApplicationTests;
 import eu.h2020.symbiote.security.commons.enums.EventType;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,8 +24,8 @@ public class EventLogTests extends AnomalyDetectionModuleApplicationTests {
     RabbitTemplate rabbitTemplate;
 
     @Test
-    public void loginFailLogOverAMQPTestSuccess() throws IOException, WrongCredentialsException {
-        EventLogRequest eventLogRequest = new EventLogRequest(username, clientId, jti, platformId, EventType.LOGIN_FAILED, 0L, null, null);
+    public void loginFailLogOverAMQPTestSuccess() throws IOException {
+        EventLogRequest eventLogRequest = new EventLogRequest(username, clientId, jti, "", platformId, EventType.LOGIN_FAILED, "", 0L, null, null);
         assertFalse(eventLogRepository.exists(eventLogRequest.getUsername()));
         rabbitTemplate.convertSendAndReceive(eventLogQueue, mapper.writeValueAsString(eventLogRequest).getBytes());
 
@@ -34,8 +33,8 @@ public class EventLogTests extends AnomalyDetectionModuleApplicationTests {
     }
 
     @Test
-    public void acquisitionFailLogOverAMQPTestSuccess() throws IOException, WrongCredentialsException {
-        EventLogRequest eventLogRequest = new EventLogRequest(username, clientId, jti, platformId, EventType.ACQUISITION_FAILED, 0L, null, null);
+    public void acquisitionFailLogOverAMQPTestSuccess() throws IOException {
+        EventLogRequest eventLogRequest = new EventLogRequest(username, clientId, jti, "", platformId, EventType.ACQUISITION_FAILED, platformId, 0L, null, null);
         assertFalse(eventLogRepository.exists(eventLogRequest.getUsername() + illegalSign + eventLogRequest.getClientIdentifier()));
         rabbitTemplate.convertSendAndReceive(eventLogQueue, mapper.writeValueAsString(
                 eventLogRequest).getBytes());
@@ -44,12 +43,11 @@ public class EventLogTests extends AnomalyDetectionModuleApplicationTests {
     }
 
     @Test
-    public void validationFailLogOverAMQPTestSuccess() throws IOException, WrongCredentialsException {
-        EventLogRequest eventLogRequest = new EventLogRequest(username, clientId, jti, platformId, EventType.VALIDATION_FAILED, 0L, null, null);
+    public void validationFailLogOverAMQPTestSuccess() throws IOException {
+        EventLogRequest eventLogRequest = new EventLogRequest(username, clientId, jti, "", platformId, EventType.VALIDATION_FAILED, platformId, 0L, null, null);
         assertFalse(eventLogRepository.exists(eventLogRequest.getJti()));
         rabbitTemplate.convertSendAndReceive(eventLogQueue, mapper.writeValueAsString(
                 eventLogRequest).getBytes());
-
         assertTrue(eventLogRepository.exists(eventLogRequest.getJti()));
     }
 }

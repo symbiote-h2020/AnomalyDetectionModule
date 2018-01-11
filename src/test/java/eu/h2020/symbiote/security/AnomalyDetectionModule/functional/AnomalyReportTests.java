@@ -31,7 +31,7 @@ public class AnomalyReportTests extends AnomalyDetectionModuleApplicationTests {
             WrongCredentialsException,
             InvalidArgumentsException {
 
-        HandleAnomalyRequest handleAnomalyRequest = new HandleAnomalyRequest(username, clientId, jti, EventType.VALIDATION_FAILED, System.currentTimeMillis() + 1000000, 1000000);
+        HandleAnomalyRequest handleAnomalyRequest = new HandleAnomalyRequest(jti, EventType.VALIDATION_FAILED, System.currentTimeMillis() + 1000000, 1000000);
 
         String result = componentClient.reportAnomaly(handleAnomalyRequest);
         assertTrue(Boolean.parseBoolean(result));
