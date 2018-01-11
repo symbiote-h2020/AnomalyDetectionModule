@@ -41,6 +41,9 @@ public class EventManagerService {
     @Value("${adm.maxFailsNumber}")
     private int maxFailsNumber;
 
+    @Value("${reporting.low.platform.reputation.enabled}")
+    private boolean reportLowReputationPlatform;
+
     @Value("${adm.platform.reputation}")
     private float boundaryReputation;
 
@@ -86,13 +89,19 @@ public class EventManagerService {
         this.extendAbusePlatformRepository(eventLogRequest);
         String selectedPlatformId = eventLogRequest.getPlatformId();
         float platformReputation = this.platformReputation(selectedPlatformId);
-        if (platformReputation > boundaryReputation) {
+        if ((platformReputation > boundaryReputation) &&
+                reportLowReputationPlatform) {
             ComponentClient componentClient = new ComponentClient(trustManagerAddress);
-            componentClient.reportLowPlatformReputation(selectedPlatformId);
+            try {
+                componentClient.reportLowPlatformReputation(selectedPlatformId);
+            } catch (Exception e) {
+                log.error("Couldn't report Low Platform Reputation due to: " + e.getMessage());
+            }
         }
         if (event.getCounter() >= maxFailsNumber) {
             IAAMClient coreAamClient = new AAMClient(coreInterfaceAddress);
             HandleAnomalyRequest handleAnomalyRequest = new HandleAnomalyRequest(event.getIdentifier(), event.getEventType(), System.currentTimeMillis(), 60000);
+            log.info("Anomaly reported and sent to: " + event.getPlatformIds());
             List<String> platformIds = new ArrayList<>(event.getPlatformIds());
             Map<String, AAM> availableAAMs;
             try {
@@ -106,6 +115,7 @@ public class EventManagerService {
                 if (platform != null) {
                     String platformAddress = platform.getAamAddress();
                     ComponentClient platformClient = new ComponentClient(platformAddress);
+                    log.info("Anomaly reported: " + handleAnomalyRequest.getAnomalyIdentifier());
                     platformClient.reportAnomaly(handleAnomalyRequest);
                     event.removePlatformId(platformId);
                     eventLogRepository.save(event);
