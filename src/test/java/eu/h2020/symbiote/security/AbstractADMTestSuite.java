@@ -1,6 +1,11 @@
 package eu.h2020.symbiote.security;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.security.repositories.FailedAuthenticationReportRepository;
+import eu.h2020.symbiote.security.repositories.FederationsRepository;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
@@ -44,7 +49,9 @@ public abstract class AbstractADMTestSuite {
     @Value("${adm.security.CERTIFICATE_ALIAS}")
     protected String CERTIFICATE_ALIAS;
     @Autowired
-    FailedAuthenticationReportRepository failedAuthenticationReportRepository;
+    protected FailedAuthenticationReportRepository failedAuthenticationReportRepository;
+    @Autowired
+    protected FederationsRepository federationsRepository;
     @LocalServerPort
     private int port;
 
@@ -101,6 +108,14 @@ public abstract class AbstractADMTestSuite {
         // Catch the random port
         serverAddress = "https://localhost:" + port;
         failedAuthenticationReportRepository.deleteAll();
+        federationsRepository.deleteAll();
+    }
+
+    public String convertObjectToJson(Object obj) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.INDENT_OUTPUT, false);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        return mapper.writeValueAsString(obj);
     }
 
 }
