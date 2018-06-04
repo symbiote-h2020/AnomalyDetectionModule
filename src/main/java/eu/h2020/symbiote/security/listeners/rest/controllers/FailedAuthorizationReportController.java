@@ -29,9 +29,10 @@ public class FailedAuthorizationReportController implements IFailedAuthorization
             if (failAuthorizationService.handleReport(failFederationAuthorizationReport)) {
                 return new ResponseEntity<>(HttpStatus.OK);
             }
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
