@@ -1,5 +1,7 @@
 package eu.h2020.symbiote.security.services;
 
+import eu.h2020.symbiote.client.SymbioteComponentClientFactory;
+import eu.h2020.symbiote.cloud.model.internal.FederationSearchResult;
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
@@ -8,8 +10,9 @@ import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenA
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ADMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.communication.AAMClient;
-import eu.h2020.symbiote.security.communication.PlatformRegistryClient;
+import eu.h2020.symbiote.security.communication.interfaces.IFeignPlatformRegistryClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.communication.payloads.FailFederationAuthorizationReport;
@@ -29,18 +32,20 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-public class FailAuthorizationService {
+public class FailedFederatedAccessReportingService {
     private FailedAuthenticationReportRepository failedAuthenticationReportRepository;
-    private static final Log log = LogFactory.getLog(FailAuthorizationService.class);
+    public static final String AP_NAME = "admPolicy";
+    public static final String MAPPING = "/pr";
     private FederationsRepository federationsRepository;
     private ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
     private String coreInterfaceAddress;
+    private static final Log log = LogFactory.getLog(FailedFederatedAccessReportingService.class);
 
     @Autowired
-    public FailAuthorizationService(FailedAuthenticationReportRepository failedAuthenticationReportRepository,
-                                    ComponentSecurityHandlerProvider componentSecurityHandlerProvider,
-                                    FederationsRepository federationsRepository,
-                                    @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress) {
+    public FailedFederatedAccessReportingService(FailedAuthenticationReportRepository failedAuthenticationReportRepository,
+                                                 ComponentSecurityHandlerProvider componentSecurityHandlerProvider,
+                                                 FederationsRepository federationsRepository,
+                                                 @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress) {
         this.failedAuthenticationReportRepository = failedAuthenticationReportRepository;
         this.componentSecurityHandlerProvider = componentSecurityHandlerProvider;
         this.federationsRepository = federationsRepository;
@@ -48,7 +53,8 @@ public class FailAuthorizationService {
     }
 
     public boolean handleReport(FailFederationAuthorizationReport failFederationAuthorizationReport) throws
-            InvalidArgumentsException, ADMException {
+            InvalidArgumentsException,
+            ADMException, SecurityHandlerException {
         //request check
         if (failFederationAuthorizationReport == null
                 || failFederationAuthorizationReport.getSecurityRequest() == null
@@ -58,6 +64,8 @@ public class FailAuthorizationService {
                 || failFederationAuthorizationReport.getPlatformId().isEmpty()
                 || failFederationAuthorizationReport.getResourceId() == null
                 || failFederationAuthorizationReport.getResourceId().isEmpty()
+                || failFederationAuthorizationReport.getIssuersPlatform() == null
+                || failFederationAuthorizationReport.getIssuersPlatform().isEmpty()
                 ) {
             log.error("Received report was malformed.");
             return false;
@@ -66,8 +74,8 @@ public class FailAuthorizationService {
         Map<String, IAccessPolicy> admAPs = new HashMap<>();
         String singleFederatedTokenAccessPolicyId = "admPolicy";
 
-        if (federationsRepository.exists(failFederationAuthorizationReport.getFederationId())) {
-            log.debug("Federation with received id doesn't exists.");
+        if (!federationsRepository.exists(failFederationAuthorizationReport.getFederationId())) {
+            log.error("Federation with received id doesn't exists.");
             return false;
         }
 
@@ -90,7 +98,7 @@ public class FailAuthorizationService {
                 .getComponentSecurityHandler()
                 .getSatisfiedPoliciesIdentifiers(admAPs, failFederationAuthorizationReport.getSecurityRequest())
                 .size() != 1) {
-            log.debug("SecurityRequest did not pass the SFT access policy.");
+            log.error("SecurityRequest did not pass the SFT access policy.");
             return false;
         }
 
@@ -103,16 +111,26 @@ public class FailAuthorizationService {
             throw new ADMException("Core AAM is not responding.");
         }
         //check if platform is registered in core
-        if (!availableAAMsCollection.getAvailableAAMs().containsKey(failFederationAuthorizationReport.getPlatformId()))
-            throw new ADMException("Core AAM does not know about " + failFederationAuthorizationReport.getPlatformId());
+        if (!availableAAMsCollection.getAvailableAAMs().containsKey(failFederationAuthorizationReport.getIssuersPlatform()))
+            throw new ADMException("Core AAM does not know about " + failFederationAuthorizationReport.getIssuersPlatform());
 
-        AAM aam = availableAAMsCollection.getAvailableAAMs().get(failFederationAuthorizationReport.getPlatformId());
-        String platformRegistryAddress = aam.getAamAddress().endsWith("/aam") ? aam.getAamAddress().substring(0, aam.getAamAddress().length() - 4) + PlatformRegistryClient.MAPPING :
-                aam.getAamAddress() + PlatformRegistryClient.MAPPING;
+        AAM aam = availableAAMsCollection.getAvailableAAMs().get(failFederationAuthorizationReport.getIssuersPlatform());
+        String platformRegistryAddress = aam.getAamAddress().endsWith("/aam") ? aam.getAamAddress().substring(0, aam.getAamAddress().length() - 4) + MAPPING :
+                aam.getAamAddress() + MAPPING;
         //check if resource available in this federation
-        PlatformRegistryClient platformRegistryClient = new PlatformRegistryClient(platformRegistryAddress);
-        if (!platformRegistryClient.isResourceAvailable(failFederationAuthorizationReport.getFederationId(), failFederationAuthorizationReport.getResourceId())) {
-            log.error(failFederationAuthorizationReport.getResourceId() + " resource is not available according to provided federation Id: " + failFederationAuthorizationReport.getFederationId());
+        IFeignPlatformRegistryClient prClient = SymbioteComponentClientFactory.createClient(
+                platformRegistryAddress,
+                IFeignPlatformRegistryClient.class,
+                "pr",
+                failFederationAuthorizationReport.getIssuersPlatform(),
+                componentSecurityHandlerProvider.getComponentSecurityHandler());
+
+        FederationSearchResult response = prClient.searchFederationAvailableResources(failFederationAuthorizationReport.getFederationId(), failFederationAuthorizationReport.getResourceId());
+        if (response.getResources().isEmpty()
+                || !response.getResources().get(0).getPlatformId().equals(failFederationAuthorizationReport.getPlatformId())) {
+            log.error(failFederationAuthorizationReport.getResourceId() +
+                    " resource is not available according to provided federation Id: " + failFederationAuthorizationReport.getFederationId() +
+                    " in platform: " + failFederationAuthorizationReport.getPlatformId());
             return false;
         }
         //end of validation
@@ -127,11 +145,18 @@ public class FailAuthorizationService {
             FailedAuthenticationReport failedAuthenticationReport = new FailedAuthenticationReport(
                     failFederationAuthorizationReport.getFederationId(),
                     failFederationAuthorizationReport.getPlatformId(),
-                    failFederationAuthorizationReport.getResourceId());
+                    failFederationAuthorizationReport.getResourceId(),
+                    failFederationAuthorizationReport.getIssuersPlatform());
             failedAuthenticationReportRepository.save(failedAuthenticationReport);
             return true;
         }
-        failedAuthenticationReportRepo.increaseCounter();
+
+        if (failedAuthenticationReportRepo.getReporters().containsKey(failFederationAuthorizationReport.getIssuersPlatform())) {
+            failedAuthenticationReportRepo.getReporters().put(
+                    failFederationAuthorizationReport.getIssuersPlatform(),
+                    failedAuthenticationReportRepo.getReporters().get(failFederationAuthorizationReport.getIssuersPlatform()) + 1);
+        } else
+            failedAuthenticationReportRepo.getReporters().put(failFederationAuthorizationReport.getIssuersPlatform(), 1);
         failedAuthenticationReportRepository.save(failedAuthenticationReportRepo);
         return true;
     }

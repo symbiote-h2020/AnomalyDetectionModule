@@ -4,6 +4,9 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class FailedAuthenticationReport {
 
     @Id
@@ -12,25 +15,29 @@ public class FailedAuthenticationReport {
     private String federationId;
     private String platformId;
     private String resourceId;
-    private long counter = 1;
+    private Map<String, Integer> reporters = new HashMap<>();
 
-    public FailedAuthenticationReport(String id, String federationId, String platformId, String resourceId, long counter) {
-        this.id = id;
-        this.federationId = federationId;
-        this.platformId = platformId;
-        this.resourceId = resourceId;
-        this.counter = counter;
+    /**
+     * for mongo usage
+     */
+    public FailedAuthenticationReport() {
+
     }
 
-    public FailedAuthenticationReport(String federationId, String platformId, String resourceId) {
+    public FailedAuthenticationReport(String federationId, String platformId, String resourceId, String reporter) {
         this.id = createId(federationId, platformId, resourceId);
         this.federationId = federationId;
         this.platformId = platformId;
         this.resourceId = resourceId;
+        reporters.put(reporter, 1);
     }
 
     public static String createId(String federationId, String platformId, String resourceId) {
         return federationId + CryptoHelper.FIELDS_DELIMITER + platformId + CryptoHelper.FIELDS_DELIMITER + resourceId;
+    }
+
+    public Map<String, Integer> getReporters() {
+        return reporters;
     }
 
     public String getId() {
@@ -49,15 +56,5 @@ public class FailedAuthenticationReport {
         return resourceId;
     }
 
-    public long getCounter() {
-        return counter;
-    }
 
-    public void setCounter(long counter) {
-        this.counter = counter;
-    }
-
-    public void increaseCounter() {
-        this.counter++;
-    }
 }

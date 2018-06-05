@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.security.repositories.FailedAuthenticationReportRepository;
 import eu.h2020.symbiote.security.repositories.FederationsRepository;
+import eu.h2020.symbiote.security.utils.DummyCoreAAM;
+import eu.h2020.symbiote.security.utils.DummyPlatformAAMAndPlatformRegistry;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
@@ -52,6 +54,10 @@ public abstract class AbstractADMTestSuite {
     protected FailedAuthenticationReportRepository failedAuthenticationReportRepository;
     @Autowired
     protected FederationsRepository federationsRepository;
+    @Autowired
+    protected DummyCoreAAM dummyCoreAAM;
+    @Autowired
+    protected DummyPlatformAAMAndPlatformRegistry dummyPlatformAAMAndPlatformRegistry;
     @LocalServerPort
     private int port;
 
@@ -104,8 +110,9 @@ public abstract class AbstractADMTestSuite {
     }
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         // Catch the random port
+        dummyCoreAAM.port = port;
         serverAddress = "https://localhost:" + port;
         failedAuthenticationReportRepository.deleteAll();
         federationsRepository.deleteAll();
