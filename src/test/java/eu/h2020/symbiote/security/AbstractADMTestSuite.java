@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import eu.h2020.symbiote.security.repositories.FailedAuthenticationReportRepository;
+import eu.h2020.symbiote.security.repositories.FailedFederatedAccessReportsRepository;
 import eu.h2020.symbiote.security.repositories.FederationsRepository;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAMAndPlatformRegistry;
@@ -51,7 +51,7 @@ public abstract class AbstractADMTestSuite {
     @Value("${adm.security.CERTIFICATE_ALIAS}")
     protected String CERTIFICATE_ALIAS;
     @Autowired
-    protected FailedAuthenticationReportRepository failedAuthenticationReportRepository;
+    protected FailedFederatedAccessReportsRepository failedFederatedAccessReportsRepository;
     @Autowired
     protected FederationsRepository federationsRepository;
     @Autowired
@@ -114,7 +114,7 @@ public abstract class AbstractADMTestSuite {
         // Catch the random port
         dummyCoreAAM.port = port;
         serverAddress = "https://localhost:" + port;
-        failedAuthenticationReportRepository.deleteAll();
+        failedFederatedAccessReportsRepository.deleteAll();
         federationsRepository.deleteAll();
     }
 

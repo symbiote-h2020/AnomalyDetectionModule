@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
+import eu.h2020.symbiote.security.unit.FailedAuthorizationUnitTests;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,16 +25,15 @@ import java.util.HashMap;
  * Dummy REST service mimicking exposed AAM features required by SymbIoTe users and reachable via CoreInterface in
  * the Core and Interworking Interfaces on Platforms' side.
  *
- * @author Piotr Kicki (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 @RestController
 public class DummyCoreAAM {
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/keystores/core.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String AAM_PATH = "/test/caam";
-    private static final String platformId = "testLocalPlatformId";
     public int port;
-    public boolean provideLocalPlatform = true;
+    public boolean provideSearchOriginPlatform = true;
     private Certificate coreCert;
 
     public DummyCoreAAM() throws
@@ -61,10 +61,14 @@ public class DummyCoreAAM {
                 SecurityConstants.CORE_AAM_INSTANCE_ID, SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                 coreCert, new HashMap<>()));
         //adding any cert as platform one
-        if (provideLocalPlatform)
-            aams.getAvailableAAMs().put(platformId, new AAM("https://localhost:" + port + "/test/platform",
-                platformId, platformId,
-                coreCert, new HashMap<>()));
+        if (provideSearchOriginPlatform)
+            aams.getAvailableAAMs().put(FailedAuthorizationUnitTests.searchOriginPlatformId,
+                    new AAM("https://localhost:" + port + "/test/platform",
+                            FailedAuthorizationUnitTests.searchOriginPlatformId,
+                            FailedAuthorizationUnitTests.searchOriginPlatformId,
+                            coreCert,
+                            new HashMap<>())
+            );
 
         return new ResponseEntity<>(aams, HttpStatus.OK);
     }

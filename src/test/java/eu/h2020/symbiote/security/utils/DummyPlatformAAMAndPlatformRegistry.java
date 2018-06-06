@@ -31,10 +31,9 @@ import static eu.h2020.symbiote.security.AbstractADMTestSuite.getPrivateKeyTestF
 
 
 /**
- * Dummy REST service mimicking exposed AAM features required by SymbIoTe users and reachable via CoreInterface in
- * the Core and Interworking Interfaces on Platforms' side.
+ * Dummy REST service mimicking exposed AAM and PlatformRegistry features required by SymbIoTe users.
  *
- * @author Piotr Kicki (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 @RestController
 public class DummyPlatformAAMAndPlatformRegistry {

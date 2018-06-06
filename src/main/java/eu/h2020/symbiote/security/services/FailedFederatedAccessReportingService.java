@@ -17,9 +17,9 @@ import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.communication.payloads.FailedFederationAuthorizationReport;
 import eu.h2020.symbiote.security.helpers.MutualAuthenticationHelper;
-import eu.h2020.symbiote.security.repositories.FailedAuthenticationReportRepository;
+import eu.h2020.symbiote.security.repositories.FailedFederatedAccessReportsRepository;
 import eu.h2020.symbiote.security.repositories.FederationsRepository;
-import eu.h2020.symbiote.security.repositories.entities.FederatedAccessAnomaly;
+import eu.h2020.symbiote.security.repositories.entities.FailedFederatedAccessReport;
 import eu.h2020.symbiote.security.services.helpers.ComponentSecurityHandlerProvider;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class FailedFederatedAccessReportingService {
-    private FailedAuthenticationReportRepository failedAuthenticationReportRepository;
+    private FailedFederatedAccessReportsRepository failedFederatedAccessReportsRepository;
     public static final String AP_NAME = "admPolicy";
     public static final String MAPPING = "/pr";
     private FederationsRepository federationsRepository;
@@ -43,11 +43,11 @@ public class FailedFederatedAccessReportingService {
     private static final Log log = LogFactory.getLog(FailedFederatedAccessReportingService.class);
 
     @Autowired
-    public FailedFederatedAccessReportingService(FailedAuthenticationReportRepository failedAuthenticationReportRepository,
+    public FailedFederatedAccessReportingService(FailedFederatedAccessReportsRepository failedFederatedAccessReportsRepository,
                                                  ComponentSecurityHandlerProvider componentSecurityHandlerProvider,
                                                  FederationsRepository federationsRepository,
                                                  @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress) {
-        this.failedAuthenticationReportRepository = failedAuthenticationReportRepository;
+        this.failedFederatedAccessReportsRepository = failedFederatedAccessReportsRepository;
         this.componentSecurityHandlerProvider = componentSecurityHandlerProvider;
         this.federationsRepository = federationsRepository;
         this.coreInterfaceAddress = coreInterfaceAddress;
@@ -136,30 +136,15 @@ public class FailedFederatedAccessReportingService {
             return HttpStatus.NOT_FOUND;
         }
         //end of validation
-        //create new entry or increase counter of existing one
-        FederatedAccessAnomaly federatedAccessAnomalyRepo = failedAuthenticationReportRepository.findOne(
-                FederatedAccessAnomaly.createId(
-                        failedFederationAuthorizationReport.getFederationId(),
-                        failedFederationAuthorizationReport.getResourcePlatformId(),
-                        failedFederationAuthorizationReport.getResourceId()
-                ));
-        if (federatedAccessAnomalyRepo == null) {
-            FederatedAccessAnomaly federatedAccessAnomaly = new FederatedAccessAnomaly(
-                    failedFederationAuthorizationReport.getFederationId(),
-                    failedFederationAuthorizationReport.getResourcePlatformId(),
-                    failedFederationAuthorizationReport.getResourceId(),
-                    failedFederationAuthorizationReport.getSearchOriginPlatformId());
-            failedAuthenticationReportRepository.save(federatedAccessAnomaly);
-            return HttpStatus.OK;
-        }
-
-        if (federatedAccessAnomalyRepo.getReporters().containsKey(failedFederationAuthorizationReport.getSearchOriginPlatformId())) {
-            federatedAccessAnomalyRepo.getReporters().put(
-                    failedFederationAuthorizationReport.getSearchOriginPlatformId(),
-                    federatedAccessAnomalyRepo.getReporters().get(failedFederationAuthorizationReport.getSearchOriginPlatformId()) + 1);
-        } else
-            federatedAccessAnomalyRepo.getReporters().put(failedFederationAuthorizationReport.getSearchOriginPlatformId(), 1);
-        failedAuthenticationReportRepository.save(federatedAccessAnomalyRepo);
+        //put report to DB
+        FailedFederatedAccessReport failedFederatedAccessReport = new FailedFederatedAccessReport(
+                failedFederationAuthorizationReport.getSecurityRequest().getTimestamp(),
+                failedFederationAuthorizationReport.getResourcePlatformId(),
+                failedFederationAuthorizationReport.getSearchOriginPlatformId(),
+                failedFederationAuthorizationReport.getFederationId(),
+                failedFederationAuthorizationReport.getResourceId()
+        );
+        failedFederatedAccessReportsRepository.save(failedFederatedAccessReport);
         return HttpStatus.OK;
     }
 }
