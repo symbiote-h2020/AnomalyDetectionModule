@@ -39,9 +39,11 @@ import static eu.h2020.symbiote.security.AbstractADMTestSuite.getPrivateKeyTestF
 @RestController
 public class DummyPlatformAAMAndPlatformRegistry {
     private static final String PLATFORM_PATH = "/test/platform";
+    private static final String KEYSTORE_AND_CERTIFICATE_PASSWORD = "1234567";
     private static final String PR_PATH = "/pr";
     private static final Log log = LogFactory.getLog(DummyPlatformAAMAndPlatformRegistry.class);
     public boolean returnResource = true;
+    public String resourcePlatformId = "testPlatformId";
 
     //AAM
     @GetMapping(path = PLATFORM_PATH + SecurityConstants.AAM_GET_COMPONENT_CERTIFICATE + "/platform/{platformIdentifier}/component/{componentIdentifier}")
@@ -55,7 +57,7 @@ public class DummyPlatformAAMAndPlatformRegistry {
         Certificate cert = new Certificate(
                 CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
                         "keystores/core.p12",
-                        "1234567",
+                        KEYSTORE_AND_CERTIFICATE_PASSWORD,
                         "registry-core-1")));
 
         return new ResponseEntity<>(cert.getCertificateString(), HttpStatus.OK);
@@ -84,14 +86,14 @@ public class DummyPlatformAAMAndPlatformRegistry {
         log.info("Received request for search.");
         PrivateKey prPrivateKey = getPrivateKeyTestFromKeystore(
                 "keystores/core.p12",
-                "1234567",
-                "1234567",
+                KEYSTORE_AND_CERTIFICATE_PASSWORD,
+                KEYSTORE_AND_CERTIFICATE_PASSWORD,
                 "registry-core-1");
         String serviceResponse = MutualAuthenticationHelper.getServiceResponse(prPrivateKey, new Date().getTime());
         FederationSearchResult federationSearchResult = new FederationSearchResult();
         List resources = new ArrayList<FederatedResource>();
         if (returnResource) {
-            FederatedResource federatedResource = new FederatedResource("symbiote@testPlatformId", new CloudResource(), "", "", new HashSet<>());
+            FederatedResource federatedResource = new FederatedResource("symbiote@" + resourcePlatformId, new CloudResource(), "", "", new HashSet<>());
             resources.add(federatedResource);
         }
         federationSearchResult.setResources(resources);

@@ -10,13 +10,14 @@ import eu.h2020.symbiote.security.communication.payloads.FailFederationAuthoriza
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.ComponentSecurityHandler;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
-import eu.h2020.symbiote.security.repositories.entities.FailedAuthenticationReport;
+import eu.h2020.symbiote.security.repositories.entities.FederatedAccessAnomaly;
 import eu.h2020.symbiote.security.services.FailedFederatedAccessReportingService;
 import eu.h2020.symbiote.security.services.helpers.ComponentSecurityHandlerProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
@@ -27,15 +28,14 @@ import java.util.Set;
 import static eu.h2020.symbiote.security.services.FailedFederatedAccessReportingService.AP_NAME;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.when;
 
 public class FailedAuthorizationUnitTests extends AbstractADMTestSuite {
 
     @Autowired
     ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
-    private String issuer = "testIssuerPlatformId";
-    private String platformId = "testPlatformId";
+    private String localPlatformId = "testLocalPlatformId";
+    private String federatedPlatformId = "testPlatformId";
     private String federationId = "testFederationId";
     private String resourceId = "testResourceId";
     @Autowired
@@ -61,14 +61,19 @@ public class FailedAuthorizationUnitTests extends AbstractADMTestSuite {
         Federation federation = new Federation();
         List<FederationMember> federationMembers = new ArrayList<>();
         FederationMember federationMember = new FederationMember();
-        federationMember.setPlatformId(platformId);
+        federationMember.setPlatformId(federatedPlatformId);
         federationMembers.add(federationMember);
         FederationMember federationMember2 = new FederationMember();
-        federationMember2.setPlatformId(issuer);
+        federationMember2.setPlatformId(localPlatformId);
         federationMembers.add(federationMember2);
         federation.setMembers(federationMembers);
         federation.setId(federationId);
         federationsRepository.save(federation);
+
+        //dummy core, platform aam and pr settings
+        dummyPlatformAAMAndPlatformRegistry.returnResource = true;
+        dummyCoreAAM.provideLocalPlatform = true;
+        dummyPlatformAAMAndPlatformRegistry.resourcePlatformId = federatedPlatformId;
     }
 
     @Test
@@ -78,16 +83,16 @@ public class FailedAuthorizationUnitTests extends AbstractADMTestSuite {
             SecurityHandlerException {
 
         //component SH mocked to return true in SecurityRequest check
-        FailFederationAuthorizationReport failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, platformId, issuer, resourceId);
-        assertTrue(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+        FailFederationAuthorizationReport failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, federatedPlatformId, localPlatformId, resourceId);
+        assertEquals(HttpStatus.OK, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
         //DB check if new report added
         assertEquals(1, failedAuthenticationReportRepository.count());
-        FailedAuthenticationReport failedAuthenticationReportDB = failedAuthenticationReportRepository.findOne(FailedAuthenticationReport.createId(federationId, platformId, resourceId));
-        assertEquals(federationId, failedAuthenticationReportDB.getFederationId());
-        assertEquals(platformId, failedAuthenticationReportDB.getPlatformId());
-        assertEquals(resourceId, failedAuthenticationReportDB.getResourceId());
-        assertTrue(failedAuthenticationReportDB.getReporters().containsKey(issuer));
-        assertEquals(1, failedAuthenticationReportDB.getReporters().get(issuer).intValue());
+        FederatedAccessAnomaly federatedAccessAnomalyDB = failedAuthenticationReportRepository.findOne(FederatedAccessAnomaly.createId(federationId, federatedPlatformId, resourceId));
+        assertEquals(federationId, federatedAccessAnomalyDB.getFederationId());
+        assertEquals(federatedPlatformId, federatedAccessAnomalyDB.getPlatformId());
+        assertEquals(resourceId, federatedAccessAnomalyDB.getResourceId());
+        assertTrue(federatedAccessAnomalyDB.getReporters().containsKey(localPlatformId));
+        assertEquals(1, federatedAccessAnomalyDB.getReporters().get(localPlatformId).intValue());
     }
 
     @Test
@@ -96,36 +101,36 @@ public class FailedAuthorizationUnitTests extends AbstractADMTestSuite {
             InvalidArgumentsException,
             SecurityHandlerException {
 
-        FailedAuthenticationReport failedAuthenticationReportDB = new FailedAuthenticationReport(federationId, platformId, resourceId, "otherIssuer");
-        failedAuthenticationReportRepository.save(failedAuthenticationReportDB);
+        FederatedAccessAnomaly federatedAccessAnomalyDB = new FederatedAccessAnomaly(federationId, federatedPlatformId, resourceId, "otherIssuer");
+        failedAuthenticationReportRepository.save(federatedAccessAnomalyDB);
         assertEquals(1, failedAuthenticationReportRepository.count());
 
         //component SH mocked to return true in SecurityRequest check
-        FailFederationAuthorizationReport failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, platformId, issuer, resourceId);
-        assertTrue(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+        FailFederationAuthorizationReport failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, federatedPlatformId, localPlatformId, resourceId);
+        assertEquals(HttpStatus.OK, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
         //DB check if no new report added
         assertEquals(1, failedAuthenticationReportRepository.count());
-        failedAuthenticationReportDB = failedAuthenticationReportRepository.findOne(FailedAuthenticationReport.createId(federationId, platformId, resourceId));
-        assertEquals(federationId, failedAuthenticationReportDB.getFederationId());
-        assertEquals(platformId, failedAuthenticationReportDB.getPlatformId());
-        assertEquals(resourceId, failedAuthenticationReportDB.getResourceId());
-        assertTrue(failedAuthenticationReportDB.getReporters().containsKey("otherIssuer"));
-        assertEquals(1, failedAuthenticationReportDB.getReporters().get("otherIssuer").intValue());
-        assertTrue(failedAuthenticationReportDB.getReporters().containsKey(issuer));
-        assertEquals(1, failedAuthenticationReportDB.getReporters().get(issuer).intValue());
+        federatedAccessAnomalyDB = failedAuthenticationReportRepository.findOne(FederatedAccessAnomaly.createId(federationId, federatedPlatformId, resourceId));
+        assertEquals(federationId, federatedAccessAnomalyDB.getFederationId());
+        assertEquals(federatedPlatformId, federatedAccessAnomalyDB.getPlatformId());
+        assertEquals(resourceId, federatedAccessAnomalyDB.getResourceId());
+        assertTrue(federatedAccessAnomalyDB.getReporters().containsKey("otherIssuer"));
+        assertEquals(1, federatedAccessAnomalyDB.getReporters().get("otherIssuer").intValue());
+        assertTrue(federatedAccessAnomalyDB.getReporters().containsKey(localPlatformId));
+        assertEquals(1, federatedAccessAnomalyDB.getReporters().get(localPlatformId).intValue());
 
         // again report anomaly
-        assertTrue(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+        assertEquals(HttpStatus.OK, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
         //DB check if report modified properly
         assertEquals(1, failedAuthenticationReportRepository.count());
-        failedAuthenticationReportDB = failedAuthenticationReportRepository.findOne(FailedAuthenticationReport.createId(federationId, platformId, resourceId));
-        assertEquals(federationId, failedAuthenticationReportDB.getFederationId());
-        assertEquals(platformId, failedAuthenticationReportDB.getPlatformId());
-        assertEquals(resourceId, failedAuthenticationReportDB.getResourceId());
-        assertTrue(failedAuthenticationReportDB.getReporters().containsKey(issuer));
-        assertEquals(2, failedAuthenticationReportDB.getReporters().get(issuer).intValue());
-        assertTrue(failedAuthenticationReportDB.getReporters().containsKey("otherIssuer"));
-        assertEquals(1, failedAuthenticationReportDB.getReporters().get("otherIssuer").intValue());
+        federatedAccessAnomalyDB = failedAuthenticationReportRepository.findOne(FederatedAccessAnomaly.createId(federationId, federatedPlatformId, resourceId));
+        assertEquals(federationId, federatedAccessAnomalyDB.getFederationId());
+        assertEquals(federatedPlatformId, federatedAccessAnomalyDB.getPlatformId());
+        assertEquals(resourceId, federatedAccessAnomalyDB.getResourceId());
+        assertTrue(federatedAccessAnomalyDB.getReporters().containsKey(localPlatformId));
+        assertEquals(2, federatedAccessAnomalyDB.getReporters().get(localPlatformId).intValue());
+        assertTrue(federatedAccessAnomalyDB.getReporters().containsKey("otherIssuer"));
+        assertEquals(1, federatedAccessAnomalyDB.getReporters().get("otherIssuer").intValue());
     }
 
     @Test
@@ -134,32 +139,32 @@ public class FailedAuthorizationUnitTests extends AbstractADMTestSuite {
             InvalidArgumentsException,
             SecurityHandlerException {
 
-        FailFederationAuthorizationReport failFederationAuthorizationReport = new FailFederationAuthorizationReport(null, federationId, platformId, issuer, resourceId);
-        assertFalse(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+        FailFederationAuthorizationReport failFederationAuthorizationReport = new FailFederationAuthorizationReport(null, federationId, federatedPlatformId, localPlatformId, resourceId);
+        assertEquals(HttpStatus.BAD_REQUEST, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
 
-        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), null, platformId, issuer, resourceId);
-        assertFalse(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), null, federatedPlatformId, localPlatformId, resourceId);
+        assertEquals(HttpStatus.BAD_REQUEST, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
 
-        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, null, issuer, resourceId);
-        assertFalse(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, null, localPlatformId, resourceId);
+        assertEquals(HttpStatus.BAD_REQUEST, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
 
-        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, platformId, null, resourceId);
-        assertFalse(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, federatedPlatformId, null, resourceId);
+        assertEquals(HttpStatus.BAD_REQUEST, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
 
-        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, platformId, issuer, null);
-        assertFalse(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, federatedPlatformId, localPlatformId, null);
+        assertEquals(HttpStatus.BAD_REQUEST, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
 
-        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), "", platformId, issuer, resourceId);
-        assertFalse(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), "", federatedPlatformId, localPlatformId, resourceId);
+        assertEquals(HttpStatus.BAD_REQUEST, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
 
-        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, "", issuer, resourceId);
-        assertFalse(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, "", localPlatformId, resourceId);
+        assertEquals(HttpStatus.BAD_REQUEST, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
 
-        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, platformId, "", resourceId);
-        assertFalse(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, federatedPlatformId, "", resourceId);
+        assertEquals(HttpStatus.BAD_REQUEST, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
 
-        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, platformId, issuer, "");
-        assertFalse(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+        failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, federatedPlatformId, localPlatformId, "");
+        assertEquals(HttpStatus.BAD_REQUEST, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
 
         assertEquals(0, failedAuthenticationReportRepository.count());
 
@@ -171,8 +176,8 @@ public class FailedAuthorizationUnitTests extends AbstractADMTestSuite {
             ADMException,
             SecurityHandlerException {
 
-        FailFederationAuthorizationReport failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), "wrongFederationId", platformId, issuer, resourceId);
-        assertFalse(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+        FailFederationAuthorizationReport failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), "wrongFederationId", federatedPlatformId, localPlatformId, resourceId);
+        assertEquals(HttpStatus.NOT_FOUND, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
         assertEquals(0, failedAuthenticationReportRepository.count());
     }
 
@@ -188,9 +193,51 @@ public class FailedAuthorizationUnitTests extends AbstractADMTestSuite {
         when(mockedComponentSecurityHandler.isReceivedServiceResponseVerified(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(true);
         when(componentSecurityHandlerProvider.getComponentSecurityHandler()).thenReturn(mockedComponentSecurityHandler);
 
-        FailFederationAuthorizationReport failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, platformId, issuer, resourceId);
-        assertFalse(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+        FailFederationAuthorizationReport failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, federatedPlatformId, localPlatformId, resourceId);
+        assertEquals(HttpStatus.UNAUTHORIZED, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
         assertEquals(0, failedAuthenticationReportRepository.count());
+    }
+
+    @Test(expected = ADMException.class)
+    public void reportFailedFederationAuthorizationTestFailCoreAAMNotResponding() throws
+            InvalidArgumentsException,
+            ADMException,
+            SecurityHandlerException {
+        ReflectionTestUtils.setField(failedFederatedAccessReportingService, "coreInterfaceAddress", "wrong server address");
+        FailFederationAuthorizationReport failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, federatedPlatformId, localPlatformId, resourceId);
+        failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport);
+    }
+
+    @Test
+    public void reportFailedFederationAuthorizationTestFailFederatedPlatformNotInAvailableAAMs() throws
+            InvalidArgumentsException,
+            ADMException,
+            SecurityHandlerException {
+        //change dummyCore not to return federatedPlatform in availableAAMs
+        dummyCoreAAM.provideLocalPlatform = false;
+        //AP is still passing due to the mock
+        FailFederationAuthorizationReport failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, federatedPlatformId, localPlatformId, resourceId);
+        assertEquals(HttpStatus.NOT_FOUND, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+    }
+
+    @Test
+    public void reportFailedFederationAuthorizationTestFailResourceNotAvailableInFederation() throws
+            InvalidArgumentsException,
+            ADMException,
+            SecurityHandlerException {
+        dummyPlatformAAMAndPlatformRegistry.returnResource = false;
+        FailFederationAuthorizationReport failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, federatedPlatformId, localPlatformId, resourceId);
+        assertEquals(HttpStatus.NOT_FOUND, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+    }
+
+    @Test
+    public void reportFailedFederationAuthorizationTestFailResourceNotAvailableInProvidedPlatform() throws
+            InvalidArgumentsException,
+            ADMException,
+            SecurityHandlerException {
+        dummyPlatformAAMAndPlatformRegistry.resourcePlatformId = "notFederatedPlatformId";
+        FailFederationAuthorizationReport failFederationAuthorizationReport = new FailFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), 100l), federationId, federatedPlatformId, localPlatformId, resourceId);
+        assertEquals(HttpStatus.NOT_FOUND, failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
     }
 
 }

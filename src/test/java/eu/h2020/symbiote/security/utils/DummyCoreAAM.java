@@ -31,10 +31,10 @@ public class DummyCoreAAM {
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/keystores/core.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String AAM_PATH = "/test/caam";
-    private static final String platformId = "testIssuerPlatformId";
+    private static final String platformId = "testLocalPlatformId";
     public int port;
+    public boolean provideLocalPlatform = true;
     private Certificate coreCert;
-    private AvailableAAMsCollection aams = new AvailableAAMsCollection(new HashMap<>());
 
     public DummyCoreAAM() throws
             CertificateException,
@@ -56,11 +56,13 @@ public class DummyCoreAAM {
 
     @GetMapping(path = AAM_PATH + SecurityConstants.AAM_GET_AVAILABLE_AAMS)
     public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() {
+        AvailableAAMsCollection aams = new AvailableAAMsCollection(new HashMap<>());
         aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("https://localhost:" + port + AAM_PATH,
                 SecurityConstants.CORE_AAM_INSTANCE_ID, SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                 coreCert, new HashMap<>()));
         //adding any cert as platform one
-        aams.getAvailableAAMs().put(platformId, new AAM("https://localhost:" + port + "/test/platform",
+        if (provideLocalPlatform)
+            aams.getAvailableAAMs().put(platformId, new AAM("https://localhost:" + port + "/test/platform",
                 platformId, platformId,
                 coreCert, new HashMap<>()));
 

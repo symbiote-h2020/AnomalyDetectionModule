@@ -19,12 +19,13 @@ import eu.h2020.symbiote.security.communication.payloads.FailFederationAuthoriza
 import eu.h2020.symbiote.security.helpers.MutualAuthenticationHelper;
 import eu.h2020.symbiote.security.repositories.FailedAuthenticationReportRepository;
 import eu.h2020.symbiote.security.repositories.FederationsRepository;
-import eu.h2020.symbiote.security.repositories.entities.FailedAuthenticationReport;
+import eu.h2020.symbiote.security.repositories.entities.FederatedAccessAnomaly;
 import eu.h2020.symbiote.security.services.helpers.ComponentSecurityHandlerProvider;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -52,7 +53,7 @@ public class FailedFederatedAccessReportingService {
         this.coreInterfaceAddress = coreInterfaceAddress;
     }
 
-    public boolean handleReport(FailFederationAuthorizationReport failFederationAuthorizationReport) throws
+    public HttpStatus handleReport(FailFederationAuthorizationReport failFederationAuthorizationReport) throws
             InvalidArgumentsException,
             ADMException, SecurityHandlerException {
         //request check
@@ -68,15 +69,14 @@ public class FailedFederatedAccessReportingService {
                 || failFederationAuthorizationReport.getIssuersPlatform().isEmpty()
                 ) {
             log.error("Received report was malformed.");
-            return false;
+            return HttpStatus.BAD_REQUEST;
         }
         // building SFTAP access policy
         Map<String, IAccessPolicy> admAPs = new HashMap<>();
-        String singleFederatedTokenAccessPolicyId = "admPolicy";
 
         if (!federationsRepository.exists(failFederationAuthorizationReport.getFederationId())) {
             log.error("Federation with received id doesn't exists.");
-            return false;
+            return HttpStatus.NOT_FOUND;
         }
 
         Federation federation = federationsRepository.findOne(failFederationAuthorizationReport.getFederationId());
@@ -88,7 +88,7 @@ public class FailedFederatedAccessReportingService {
                         failFederationAuthorizationReport.getPlatformId(),
                         new HashMap<>(),
                         false);
-        admAPs.put(singleFederatedTokenAccessPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(policySpecifier));
+        admAPs.put(AP_NAME, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(policySpecifier));
 
         //setting security request validity time to 2 minutes (from previous 1 minute)
         MutualAuthenticationHelper.SERVICE_RESPONSE_EXPIRATION_TIME = 120;
@@ -99,7 +99,7 @@ public class FailedFederatedAccessReportingService {
                 .getSatisfiedPoliciesIdentifiers(admAPs, failFederationAuthorizationReport.getSecurityRequest())
                 .size() != 1) {
             log.error("SecurityRequest did not pass the SFT access policy.");
-            return false;
+            return HttpStatus.UNAUTHORIZED;
         }
 
         //get the platform address
@@ -111,8 +111,10 @@ public class FailedFederatedAccessReportingService {
             throw new ADMException("Core AAM is not responding.");
         }
         //check if platform is registered in core
-        if (!availableAAMsCollection.getAvailableAAMs().containsKey(failFederationAuthorizationReport.getIssuersPlatform()))
-            throw new ADMException("Core AAM does not know about " + failFederationAuthorizationReport.getIssuersPlatform());
+        if (!availableAAMsCollection.getAvailableAAMs().containsKey(failFederationAuthorizationReport.getIssuersPlatform())) {
+            log.error("Core AAM does not know about " + failFederationAuthorizationReport.getIssuersPlatform());
+            return HttpStatus.NOT_FOUND;
+        }
 
         AAM aam = availableAAMsCollection.getAvailableAAMs().get(failFederationAuthorizationReport.getIssuersPlatform());
         String platformRegistryAddress = aam.getAamAddress().endsWith("/aam") ? aam.getAamAddress().substring(0, aam.getAamAddress().length() - 4) + MAPPING :
@@ -131,33 +133,33 @@ public class FailedFederatedAccessReportingService {
             log.error(failFederationAuthorizationReport.getResourceId() +
                     " resource is not available according to provided federation Id: " + failFederationAuthorizationReport.getFederationId() +
                     " in platform: " + failFederationAuthorizationReport.getPlatformId());
-            return false;
+            return HttpStatus.NOT_FOUND;
         }
         //end of validation
         //create new entry or increase counter of existing one
-        FailedAuthenticationReport failedAuthenticationReportRepo = failedAuthenticationReportRepository.findOne(
-                FailedAuthenticationReport.createId(
+        FederatedAccessAnomaly federatedAccessAnomalyRepo = failedAuthenticationReportRepository.findOne(
+                FederatedAccessAnomaly.createId(
                         failFederationAuthorizationReport.getFederationId(),
                         failFederationAuthorizationReport.getPlatformId(),
                         failFederationAuthorizationReport.getResourceId()
                 ));
-        if (failedAuthenticationReportRepo == null) {
-            FailedAuthenticationReport failedAuthenticationReport = new FailedAuthenticationReport(
+        if (federatedAccessAnomalyRepo == null) {
+            FederatedAccessAnomaly federatedAccessAnomaly = new FederatedAccessAnomaly(
                     failFederationAuthorizationReport.getFederationId(),
                     failFederationAuthorizationReport.getPlatformId(),
                     failFederationAuthorizationReport.getResourceId(),
                     failFederationAuthorizationReport.getIssuersPlatform());
-            failedAuthenticationReportRepository.save(failedAuthenticationReport);
-            return true;
+            failedAuthenticationReportRepository.save(federatedAccessAnomaly);
+            return HttpStatus.OK;
         }
 
-        if (failedAuthenticationReportRepo.getReporters().containsKey(failFederationAuthorizationReport.getIssuersPlatform())) {
-            failedAuthenticationReportRepo.getReporters().put(
+        if (federatedAccessAnomalyRepo.getReporters().containsKey(failFederationAuthorizationReport.getIssuersPlatform())) {
+            federatedAccessAnomalyRepo.getReporters().put(
                     failFederationAuthorizationReport.getIssuersPlatform(),
-                    failedAuthenticationReportRepo.getReporters().get(failFederationAuthorizationReport.getIssuersPlatform()) + 1);
+                    federatedAccessAnomalyRepo.getReporters().get(failFederationAuthorizationReport.getIssuersPlatform()) + 1);
         } else
-            failedAuthenticationReportRepo.getReporters().put(failFederationAuthorizationReport.getIssuersPlatform(), 1);
-        failedAuthenticationReportRepository.save(failedAuthenticationReportRepo);
-        return true;
+            federatedAccessAnomalyRepo.getReporters().put(failFederationAuthorizationReport.getIssuersPlatform(), 1);
+        failedAuthenticationReportRepository.save(federatedAccessAnomalyRepo);
+        return HttpStatus.OK;
     }
 }

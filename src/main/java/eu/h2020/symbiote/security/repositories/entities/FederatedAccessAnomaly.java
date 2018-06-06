@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import java.util.HashMap;
 import java.util.Map;
 
-public class FailedAuthenticationReport {
+public class FederatedAccessAnomaly {
 
     @Id
     private String id;
@@ -20,11 +20,11 @@ public class FailedAuthenticationReport {
     /**
      * for mongo usage
      */
-    public FailedAuthenticationReport() {
+    public FederatedAccessAnomaly() {
 
     }
 
-    public FailedAuthenticationReport(String federationId, String platformId, String resourceId, String reporter) {
+    public FederatedAccessAnomaly(String federationId, String platformId, String resourceId, String reporter) {
         this.id = createId(federationId, platformId, resourceId);
         this.federationId = federationId;
         this.platformId = platformId;
