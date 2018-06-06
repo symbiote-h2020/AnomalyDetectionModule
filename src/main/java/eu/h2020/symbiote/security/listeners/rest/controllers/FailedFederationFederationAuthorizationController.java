@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
 import eu.h2020.symbiote.security.communication.payloads.FailedFederationAuthorizationReport;
-import eu.h2020.symbiote.security.listeners.rest.interfaces.IFailedAuthorizationReport;
+import eu.h2020.symbiote.security.listeners.rest.interfaces.IFailedFederationAuthorization;
 import eu.h2020.symbiote.security.services.FailedFederatedAccessReportingService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -12,14 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
-public class FailedAuthorizationReportController implements IFailedAuthorizationReport {
+public class FailedFederationFederationAuthorizationController implements IFailedFederationAuthorization {
 
-    private static final Log log = LogFactory.getLog(FailedAuthorizationReportController.class);
+    private static final Log log = LogFactory.getLog(FailedFederationFederationAuthorizationController.class);
 
     private final FailedFederatedAccessReportingService failedFederatedAccessReportingService;
 
     @Autowired
-    public FailedAuthorizationReportController(FailedFederatedAccessReportingService failedFederatedAccessReportingService) {
+    public FailedFederationFederationAuthorizationController(FailedFederatedAccessReportingService failedFederatedAccessReportingService) {
         this.failedFederatedAccessReportingService = failedFederatedAccessReportingService;
     }
 

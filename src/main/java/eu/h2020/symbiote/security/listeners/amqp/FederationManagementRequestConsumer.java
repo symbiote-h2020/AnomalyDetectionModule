@@ -38,7 +38,7 @@ public class FederationManagementRequestConsumer {
                     value = "${rabbit.exchange.federation}",
                     ignoreDeclarationExceptions = "true",
                     durable = "false",
-                    internal = "${rabbit.exchange.aam.internal}",
+                    internal = "${rabbit.exchange.adm.internal}",
                     type = "topic"),
             key = "${rabbit.routingKey.federation.created}"))
     public void federationCreate(String message) {
@@ -71,7 +71,7 @@ public class FederationManagementRequestConsumer {
                     value = "${rabbit.exchange.federation}",
                     ignoreDeclarationExceptions = "true",
                     durable = "false",
-                    internal = "${rabbit.exchange.aam.internal}",
+                    internal = "${rabbit.exchange.adm.internal}",
                     type = "topic"),
             key = "${rabbit.routingKey.federation.deleted}"))
     public void federationDelete(String federationId) {
@@ -97,7 +97,7 @@ public class FederationManagementRequestConsumer {
                     value = "${rabbit.exchange.federation}",
                     ignoreDeclarationExceptions = "true",
                     durable = "false",
-                    internal = "${rabbit.exchange.aam.internal}",
+                    internal = "${rabbit.exchange.adm.internal}",
                     type = "topic"),
             key = "${rabbit.routingKey.federation.changed}"))
     public void federationUpdate(String message) {
