@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
-import eu.h2020.symbiote.security.communication.payloads.FailFederationAuthorizationReport;
+import eu.h2020.symbiote.security.communication.payloads.FailedFederationAuthorizationReport;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IFailedAuthorizationReport;
 import eu.h2020.symbiote.security.services.FailedFederatedAccessReportingService;
 import org.apache.commons.logging.Log;
@@ -24,9 +24,9 @@ public class FailedAuthorizationReportController implements IFailedAuthorization
     }
 
     @Override
-    public ResponseEntity<String> handleFailFederationAuthorizationReport(FailFederationAuthorizationReport failFederationAuthorizationReport) {
+    public ResponseEntity<String> handleFailFederationAuthorizationReport(FailedFederationAuthorizationReport failedFederationAuthorizationReport) {
         try {
-            return new ResponseEntity<>(failedFederatedAccessReportingService.handleReport(failFederationAuthorizationReport));
+            return new ResponseEntity<>(failedFederatedAccessReportingService.handleReport(failedFederationAuthorizationReport));
         } catch (Exception e) {
             log.error(e.getMessage());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
