@@ -3,8 +3,8 @@ package eu.h2020.symbiote.security.unit;
 import eu.h2020.symbiote.security.AbstractADMTestSuite;
 import eu.h2020.symbiote.security.communication.payloads.FederationGroupedPlatformMisdeedsReport;
 import eu.h2020.symbiote.security.communication.payloads.OriginPlatformGroupedPlatformMisdeedsReport;
-import eu.h2020.symbiote.security.listeners.rest.controllers.FailedFederatedAccessReportsStatisticsController;
 import eu.h2020.symbiote.security.repositories.entities.FailedFederatedAccessReport;
+import eu.h2020.symbiote.security.services.FailedFederatedAccessReportsStatisticsService;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +19,7 @@ import static org.junit.Assert.assertNull;
 public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTestSuite {
 
     @Autowired
-    FailedFederatedAccessReportsStatisticsController failedFederatedAccessReportsStatisticsController;
+    FailedFederatedAccessReportsStatisticsService failedFederatedAccessReportsStatisticsService;
     private String searchOriginPlatformId = "testLocalPlatformId";
     private String searchOriginPlatformId2 = "testLocalPlatformId2";
     private String resourcePlatformId = "testPlatformId";
@@ -53,7 +53,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
 
     @Test
     public void getMisdeedsGroupedByPlatformNoFilters() {
-        Map<String, OriginPlatformGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByPlatform(null, null).getBody();
+        Map<String, OriginPlatformGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByPlatform(null, null);
         assertEquals(2, response.size());
 
         assertTrue(response.containsKey(resourcePlatformId));
@@ -85,7 +85,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
 
     @Test
     public void getMisdeedsGroupedByPlatformWithPlatformFilter() {
-        Map<String, OriginPlatformGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByPlatform(resourcePlatformId, null).getBody();
+        Map<String, OriginPlatformGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByPlatform(resourcePlatformId, null);
         assertEquals(1, response.size());
 
         assertTrue(response.containsKey(resourcePlatformId));
@@ -101,7 +101,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
         assertFalse(response.get(resourcePlatformId).getDetailsBySearchOriginPlatform().containsKey(searchOriginPlatformId3));
 
         // wrong filter
-        response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByPlatform(resourcePlatformId3, null).getBody();
+        response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByPlatform(resourcePlatformId3, null);
         assertEquals(1, response.size());
         assertTrue(response.containsKey(resourcePlatformId3));
         assertEquals(0, response.get(resourcePlatformId3).getTotalMisdeeds());
@@ -110,7 +110,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
 
     @Test
     public void getMisdeedsGroupedByPlatformWithOriginPlatformFilter() {
-        Map<String, OriginPlatformGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByPlatform(null, searchOriginPlatformId).getBody();
+        Map<String, OriginPlatformGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByPlatform(null, searchOriginPlatformId);
         assertEquals(2, response.size());
 
         assertTrue(response.containsKey(resourcePlatformId));
@@ -134,7 +134,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
         assertFalse(response.containsKey(resourcePlatformId3));
 
         // wrong filter
-        response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByPlatform(null, searchOriginPlatformId3).getBody();
+        response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByPlatform(null, searchOriginPlatformId3);
         assertEquals(2, response.size());
         assertTrue(response.containsKey(resourcePlatformId));
         assertEquals(0, response.get(resourcePlatformId).getTotalMisdeeds());
@@ -148,7 +148,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
 
     @Test
     public void getMisdeedsGroupedByPlatformWithPlatformAndOriginPlatformFilter() {
-        Map<String, OriginPlatformGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByPlatform(resourcePlatformId, searchOriginPlatformId).getBody();
+        Map<String, OriginPlatformGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByPlatform(resourcePlatformId, searchOriginPlatformId);
         assertEquals(1, response.size());
 
         assertTrue(response.containsKey(resourcePlatformId));
@@ -164,7 +164,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
         assertFalse(response.containsKey(resourcePlatformId3));
 
         // wrong filter
-        response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByPlatform(resourcePlatformId, searchOriginPlatformId3).getBody();
+        response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByPlatform(resourcePlatformId, searchOriginPlatformId3);
         assertEquals(1, response.size());
         assertTrue(response.containsKey(resourcePlatformId));
         assertEquals(0, response.get(resourcePlatformId).getTotalMisdeeds());
@@ -172,7 +172,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
         assertEquals(0, response.get(resourcePlatformId).getDetailsBySearchOriginPlatform().get(searchOriginPlatformId3).size());
 
         // wrong filter
-        response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByPlatform(resourcePlatformId3, searchOriginPlatformId).getBody();
+        response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByPlatform(resourcePlatformId3, searchOriginPlatformId);
         assertEquals(1, response.size());
         assertTrue(response.containsKey(resourcePlatformId3));
         assertEquals(0, response.get(resourcePlatformId3).getTotalMisdeeds());
@@ -183,7 +183,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
 
     @Test
     public void getMisdeedsGroupedByFederationNoFilters() {
-        Map<String, FederationGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(null, null).getBody();
+        Map<String, FederationGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByFederations(null, null);
         assertEquals(2, response.size());
 
         assertTrue(response.containsKey(resourcePlatformId));
@@ -215,7 +215,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
 
     @Test
     public void getMisdeedsGroupedByFederationWithPlatformFilter() {
-        Map<String, FederationGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(resourcePlatformId, null).getBody();
+        Map<String, FederationGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByFederations(resourcePlatformId, null);
         assertEquals(1, response.size());
 
         assertTrue(response.containsKey(resourcePlatformId));
@@ -231,7 +231,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
         assertFalse(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId3));
 
         // wrong filter
-        response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(resourcePlatformId3, null).getBody();
+        response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByFederations(resourcePlatformId3, null);
         assertEquals(1, response.size());
         assertTrue(response.containsKey(resourcePlatformId3));
         assertEquals(0, response.get(resourcePlatformId3).getTotalMisdeeds());
@@ -240,7 +240,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
 
     @Test
     public void getMisdeedsGroupedByFederationWithFederationFilter() {
-        Map<String, FederationGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(null, federationId).getBody();
+        Map<String, FederationGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByFederations(null, federationId);
         assertEquals(2, response.size());
 
         assertTrue(response.containsKey(resourcePlatformId));
@@ -264,7 +264,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
         assertFalse(response.containsKey(resourcePlatformId3));
 
         // wrong filter
-        response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(null, federationId3).getBody();
+        response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByFederations(null, federationId3);
         assertEquals(2, response.size());
         assertTrue(response.containsKey(resourcePlatformId));
         assertEquals(0, response.get(resourcePlatformId).getTotalMisdeeds());
@@ -278,7 +278,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
 
     @Test
     public void getMisdeedsGroupedByFederationWithPlatformAndFederationFilter() {
-        Map<String, FederationGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(resourcePlatformId, federationId).getBody();
+        Map<String, FederationGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByFederations(resourcePlatformId, federationId);
         assertEquals(1, response.size());
 
         assertTrue(response.containsKey(resourcePlatformId));
@@ -294,7 +294,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
         assertFalse(response.containsKey(resourcePlatformId3));
 
         // wrong filter
-        response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(resourcePlatformId, federationId3).getBody();
+        response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByFederations(resourcePlatformId, federationId3);
         assertEquals(1, response.size());
         assertTrue(response.containsKey(resourcePlatformId));
         assertEquals(0, response.get(resourcePlatformId).getTotalMisdeeds());
@@ -302,7 +302,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
         assertEquals(0, response.get(resourcePlatformId).getDetailsByFederation().get(federationId3).size());
 
         // wrong filter
-        response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(resourcePlatformId3, federationId).getBody();
+        response = failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByFederations(resourcePlatformId3, federationId);
         assertEquals(1, response.size());
         assertTrue(response.containsKey(resourcePlatformId3));
         assertEquals(0, response.get(resourcePlatformId3).getTotalMisdeeds());

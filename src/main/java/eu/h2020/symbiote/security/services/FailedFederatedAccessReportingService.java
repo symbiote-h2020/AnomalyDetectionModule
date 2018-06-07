@@ -32,6 +32,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Service responsible for handling reports of failed federation authorization
+ *
+ * @author Jakub Toczek (PSNC)
+ * @author Mikołaj Dobski (PSNC)
+ */
 @Service
 public class FailedFederatedAccessReportingService {
     private FailedFederatedAccessReportsRepository failedFederatedAccessReportsRepository;
