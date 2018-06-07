@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 public interface IFailedFederationAuthorization {
 
-    @PostMapping(value = SecurityConstants.LOG_FAIL_FEDERATION_AUTHORIZATION, consumes = "application/json")
+    @PostMapping(value = SecurityConstants.ADM_LOG_FAILED_FEDERATION_AUTHORIZATION, consumes = "application/json")
     ResponseEntity handleFailFederationAuthorizationReport(@RequestBody FailedFederationAuthorizationReport failedFederationAuthorizationReport);
 
 }

@@ -34,6 +34,7 @@ class AppConfig extends AbstractMongoConfiguration {
         return databaseName;
     }
 
+    @Bean
     @Override
     public Mongo mongo() {
         synchronized (syncObject) {

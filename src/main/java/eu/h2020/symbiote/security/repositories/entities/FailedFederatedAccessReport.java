@@ -1,8 +1,12 @@
 package eu.h2020.symbiote.security.repositories.entities;
 
 import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+@Document(collection = FailedFederatedAccessReport.REPORTS_COLLECTION_NAME)
 public class FailedFederatedAccessReport {
+
+    public static final String REPORTS_COLLECTION_NAME = "denied-federated-access-reports";
 
     private long timestamp;
     @Indexed
