@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractADMTestSuite;
+import eu.h2020.symbiote.security.communication.payloads.FederationGroupedPlatformMisdeedsReport;
 import eu.h2020.symbiote.security.communication.payloads.OriginPlatformGroupedPlatformMisdeedsReport;
 import eu.h2020.symbiote.security.listeners.rest.controllers.FailedFederatedAccessReportsStatisticsController;
 import eu.h2020.symbiote.security.repositories.entities.FailedFederatedAccessReport;
@@ -178,6 +179,136 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
         assertEquals(1, response.get(resourcePlatformId3).getDetailsBySearchOriginPlatform().size());
         assertTrue(response.get(resourcePlatformId3).getDetailsBySearchOriginPlatform().containsKey(searchOriginPlatformId));
         assertEquals(0, response.get(resourcePlatformId3).getDetailsBySearchOriginPlatform().get(searchOriginPlatformId).size());
+    }
+
+    @Test
+    public void getMisdeedsGroupedByFederationNoFilters() {
+        Map<String, FederationGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(null, null).getBody();
+        assertEquals(2, response.size());
+
+        assertTrue(response.containsKey(resourcePlatformId));
+        assertEquals(8, response.get(resourcePlatformId).getTotalMisdeeds());
+        assertTrue(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId));
+        assertEquals(3, response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId).intValue());
+        assertEquals(2, response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId2).intValue());
+        assertNull(response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId3));
+        assertTrue(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId2));
+        assertEquals(2, response.get(resourcePlatformId).getDetailsByFederation().get(federationId2).get(searchOriginPlatformId).intValue());
+        assertEquals(1, response.get(resourcePlatformId).getDetailsByFederation().get(federationId2).get(searchOriginPlatformId2).intValue());
+        assertNull(response.get(resourcePlatformId).getDetailsByFederation().get(federationId2).get(searchOriginPlatformId3));
+        assertFalse(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId3));
+
+        assertTrue(response.containsKey(resourcePlatformId2));
+        assertEquals(5, response.get(resourcePlatformId2).getTotalMisdeeds());
+        assertTrue(response.get(resourcePlatformId2).getDetailsByFederation().containsKey(federationId));
+        assertEquals(2, response.get(resourcePlatformId2).getDetailsByFederation().get(federationId).get(searchOriginPlatformId).intValue());
+        assertEquals(1, response.get(resourcePlatformId2).getDetailsByFederation().get(federationId).get(searchOriginPlatformId2).intValue());
+        assertNull(response.get(resourcePlatformId2).getDetailsByFederation().get(federationId).get(searchOriginPlatformId3));
+        assertTrue(response.get(resourcePlatformId2).getDetailsByFederation().containsKey(federationId2));
+        assertEquals(1, response.get(resourcePlatformId2).getDetailsByFederation().get(federationId2).get(searchOriginPlatformId).intValue());
+        assertEquals(1, response.get(resourcePlatformId2).getDetailsByFederation().get(federationId2).get(searchOriginPlatformId2).intValue());
+        assertNull(response.get(resourcePlatformId2).getDetailsByFederation().get(federationId2).get(searchOriginPlatformId3));
+        assertFalse(response.get(resourcePlatformId2).getDetailsByFederation().containsKey(federationId3));
+
+        assertFalse(response.containsKey(resourcePlatformId3));
+    }
+
+    @Test
+    public void getMisdeedsGroupedByFederationWithPlatformFilter() {
+        Map<String, FederationGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(resourcePlatformId, null).getBody();
+        assertEquals(1, response.size());
+
+        assertTrue(response.containsKey(resourcePlatformId));
+        assertEquals(8, response.get(resourcePlatformId).getTotalMisdeeds());
+        assertTrue(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId));
+        assertEquals(3, response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId).intValue());
+        assertEquals(2, response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId2).intValue());
+        assertNull(response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId3));
+        assertTrue(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId2));
+        assertEquals(2, response.get(resourcePlatformId).getDetailsByFederation().get(federationId2).get(searchOriginPlatformId).intValue());
+        assertEquals(1, response.get(resourcePlatformId).getDetailsByFederation().get(federationId2).get(searchOriginPlatformId2).intValue());
+        assertNull(response.get(resourcePlatformId).getDetailsByFederation().get(federationId2).get(searchOriginPlatformId3));
+        assertFalse(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId3));
+
+        // wrong filter
+        response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(resourcePlatformId3, null).getBody();
+        assertEquals(1, response.size());
+        assertTrue(response.containsKey(resourcePlatformId3));
+        assertEquals(0, response.get(resourcePlatformId3).getTotalMisdeeds());
+        assertTrue(response.get(resourcePlatformId3).getDetailsByFederation().isEmpty());
+    }
+
+    @Test
+    public void getMisdeedsGroupedByFederationWithFederationFilter() {
+        Map<String, FederationGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(null, federationId).getBody();
+        assertEquals(2, response.size());
+
+        assertTrue(response.containsKey(resourcePlatformId));
+        assertEquals(5, response.get(resourcePlatformId).getTotalMisdeeds());
+        assertTrue(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId));
+        assertEquals(3, response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId).intValue());
+        assertEquals(2, response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId2).intValue());
+        assertNull(response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId3));
+        assertFalse(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId2));
+        assertFalse(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId3));
+
+        assertTrue(response.containsKey(resourcePlatformId2));
+        assertEquals(3, response.get(resourcePlatformId2).getTotalMisdeeds());
+        assertTrue(response.get(resourcePlatformId2).getDetailsByFederation().containsKey(federationId));
+        assertEquals(2, response.get(resourcePlatformId2).getDetailsByFederation().get(federationId).get(searchOriginPlatformId).intValue());
+        assertEquals(1, response.get(resourcePlatformId2).getDetailsByFederation().get(federationId).get(searchOriginPlatformId2).intValue());
+        assertNull(response.get(resourcePlatformId2).getDetailsByFederation().get(federationId).get(searchOriginPlatformId3));
+        assertFalse(response.get(resourcePlatformId2).getDetailsByFederation().containsKey(federationId2));
+        assertFalse(response.get(resourcePlatformId2).getDetailsByFederation().containsKey(federationId2));
+
+        assertFalse(response.containsKey(resourcePlatformId3));
+
+        // wrong filter
+        response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(null, federationId3).getBody();
+        assertEquals(2, response.size());
+        assertTrue(response.containsKey(resourcePlatformId));
+        assertEquals(0, response.get(resourcePlatformId).getTotalMisdeeds());
+        assertTrue(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId3));
+        assertEquals(0, response.get(resourcePlatformId).getDetailsByFederation().get(federationId3).size());
+        assertTrue(response.containsKey(resourcePlatformId2));
+        assertEquals(0, response.get(resourcePlatformId2).getTotalMisdeeds());
+        assertTrue(response.get(resourcePlatformId2).getDetailsByFederation().containsKey(federationId3));
+        assertEquals(0, response.get(resourcePlatformId2).getDetailsByFederation().get(federationId3).size());
+    }
+
+    @Test
+    public void getMisdeedsGroupedByFederationWithPlatformAndFederationFilter() {
+        Map<String, FederationGroupedPlatformMisdeedsReport> response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(resourcePlatformId, federationId).getBody();
+        assertEquals(1, response.size());
+
+        assertTrue(response.containsKey(resourcePlatformId));
+        assertEquals(5, response.get(resourcePlatformId).getTotalMisdeeds());
+        assertTrue(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId));
+        assertEquals(3, response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId).intValue());
+        assertEquals(2, response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId2).intValue());
+        assertNull(response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId3));
+        assertFalse(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId2));
+        assertFalse(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId3));
+
+        assertFalse(response.containsKey(resourcePlatformId2));
+        assertFalse(response.containsKey(resourcePlatformId3));
+
+        // wrong filter
+        response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(resourcePlatformId, federationId3).getBody();
+        assertEquals(1, response.size());
+        assertTrue(response.containsKey(resourcePlatformId));
+        assertEquals(0, response.get(resourcePlatformId).getTotalMisdeeds());
+        assertTrue(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId3));
+        assertEquals(0, response.get(resourcePlatformId).getDetailsByFederation().get(federationId3).size());
+
+        // wrong filter
+        response = failedFederatedAccessReportsStatisticsController.getMisdeedsGroupedByFederations(resourcePlatformId3, federationId).getBody();
+        assertEquals(1, response.size());
+        assertTrue(response.containsKey(resourcePlatformId3));
+        assertEquals(0, response.get(resourcePlatformId3).getTotalMisdeeds());
+        assertEquals(1, response.get(resourcePlatformId3).getDetailsByFederation().size());
+        assertTrue(response.get(resourcePlatformId3).getDetailsByFederation().containsKey(federationId));
+        assertEquals(0, response.get(resourcePlatformId3).getDetailsByFederation().get(federationId).size());
     }
 
 }
