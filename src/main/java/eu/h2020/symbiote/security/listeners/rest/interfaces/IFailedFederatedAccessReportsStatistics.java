@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Map;
 
-@RequestMapping(SecurityConstants.ADM_GET_FEDERATED_MISDEEDS)
+@RequestMapping("/adm" + SecurityConstants.ADM_GET_FEDERATED_MISDEEDS)
 public interface IFailedFederatedAccessReportsStatistics {
 
     @GetMapping(value = "/bySearchOriginPlatform")

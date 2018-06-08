@@ -1,25 +1,44 @@
 package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractADMTestSuite;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
+import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.FederationGroupedPlatformMisdeedsReport;
 import eu.h2020.symbiote.security.communication.payloads.OriginPlatformGroupedPlatformMisdeedsReport;
+import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
+import eu.h2020.symbiote.security.handler.ComponentSecurityHandler;
+import eu.h2020.symbiote.security.handler.SecurityHandler;
+import eu.h2020.symbiote.security.listeners.rest.controllers.FailedFederatedAccessReportsStatisticsController;
 import eu.h2020.symbiote.security.repositories.entities.FailedFederatedAccessReport;
 import eu.h2020.symbiote.security.services.FailedFederatedAccessReportsStatisticsService;
+import eu.h2020.symbiote.security.services.helpers.ComponentSecurityHandlerProvider;
+import feign.FeignException;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.http.HttpStatus;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
+import static eu.h2020.symbiote.security.services.FailedFederatedAccessReportingService.AP_NAME;
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.when;
 
 public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTestSuite {
 
     @Autowired
     FailedFederatedAccessReportsStatisticsService failedFederatedAccessReportsStatisticsService;
+    @Autowired
+    ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
+    @SpyBean
+    FailedFederatedAccessReportsStatisticsController failedFederatedAccessReportsStatisticsController;
+
     private String searchOriginPlatformId = "testLocalPlatformId";
     private String searchOriginPlatformId2 = "testLocalPlatformId2";
     private String resourcePlatformId = "testPlatformId";
@@ -31,8 +50,11 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
     private String resourcePlatformId3 = "testPlatformId3";
     private String federationId3 = "federation3";
 
+    private ComponentSecurityHandler mockedComponentSecurityHandler;
+
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
+        super.setUp();
         failedFederatedAccessReportsRepository.deleteAll();
         failedFederatedAccessReportsRepository.save(new FailedFederatedAccessReport(1L, resourcePlatformId, searchOriginPlatformId, federationId, "res1"));
         failedFederatedAccessReportsRepository.save(new FailedFederatedAccessReport(1L, resourcePlatformId, searchOriginPlatformId, federationId, "res2"));
@@ -49,6 +71,22 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
         failedFederatedAccessReportsRepository.save(new FailedFederatedAccessReport(1L, resourcePlatformId2, searchOriginPlatformId2, federationId, "res2"));
         failedFederatedAccessReportsRepository.save(new FailedFederatedAccessReport(1L, resourcePlatformId2, searchOriginPlatformId2, federationId2, "res4"));
 
+        //mocking component security handler
+        mockedComponentSecurityHandler = Mockito.mock(ComponentSecurityHandler.class);
+        Set<String> set = new HashSet<>();
+        set.add(AP_NAME);
+        when(mockedComponentSecurityHandler.getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any())).thenReturn(set);
+        when(mockedComponentSecurityHandler.getFederationGroupedPlatformMisdeedsReports(Mockito.any(), Mockito.any())).thenCallRealMethod();
+        when(mockedComponentSecurityHandler.getOriginPlatformGroupedPlatformMisdeedsReports(Mockito.any(), Mockito.any())).thenCallRealMethod();
+        when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenReturn(new SecurityRequest("eyJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJ0ZXN0dXNlcm5hbWUiLCJzdWIiOiJ0ZXN0Y2xpZW50aWQiLCJpYXQiOjE1MDE1MDk3ODIsImV4cCI6MTUwMTUwOTg0Mn0.SGNpyl3zRA_ptRhA0lFH0o7-nhf3mpxE95ss37_jHYbCnwlRb4zDvVaYCj9DlpppU4U0y3vIPEqM44vV2UZ5Iw"));
+        when(mockedComponentSecurityHandler.isReceivedServiceResponseVerified(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(true);
+        when(mockedComponentSecurityHandler.generateServiceResponse()).thenReturn("ServiceResponce");
+        SecurityHandler securityHandler = Mockito.mock(SecurityHandler.class);
+        AAM aam = Mockito.mock(AAM.class);
+        when(aam.getAamAddress()).thenReturn(serverAddress);
+        when(securityHandler.getCoreAAMInstance()).thenReturn(aam);
+        when(mockedComponentSecurityHandler.getSecurityHandler()).thenReturn(securityHandler);
+        when(componentSecurityHandlerProvider.getComponentSecurityHandler()).thenReturn(mockedComponentSecurityHandler);
     }
 
     @Test
@@ -310,5 +348,96 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
         assertTrue(response.get(resourcePlatformId3).getDetailsByFederation().containsKey(federationId));
         assertEquals(0, response.get(resourcePlatformId3).getDetailsByFederation().get(federationId).size());
     }
+
+    @Test
+    public void getFederationGroupedPlatformMisdeedsReportsSuccess() throws SecurityHandlerException {
+
+        Map<String, FederationGroupedPlatformMisdeedsReport> response = componentSecurityHandlerProvider.getComponentSecurityHandler().getFederationGroupedPlatformMisdeedsReports(resourcePlatformId, federationId);
+
+        assertEquals(1, response.size());
+
+        assertTrue(response.containsKey(resourcePlatformId));
+        assertEquals(5, response.get(resourcePlatformId).getTotalMisdeeds());
+        assertTrue(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId));
+        assertEquals(3, response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId).intValue());
+        assertEquals(2, response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId2).intValue());
+        assertNull(response.get(resourcePlatformId).getDetailsByFederation().get(federationId).get(searchOriginPlatformId3));
+        assertFalse(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId2));
+        assertFalse(response.get(resourcePlatformId).getDetailsByFederation().containsKey(federationId3));
+
+        assertFalse(response.containsKey(resourcePlatformId2));
+        assertFalse(response.containsKey(resourcePlatformId3));
+    }
+
+    @Test
+    public void getFederationGroupedPlatformMisdeedsReportsFailNotPassedAP() throws SecurityHandlerException {
+
+        when(mockedComponentSecurityHandler.getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any())).thenReturn(new HashSet<>());
+        try {
+            componentSecurityHandlerProvider.getComponentSecurityHandler().getFederationGroupedPlatformMisdeedsReports(resourcePlatformId, federationId);
+            fail();
+        } catch (FeignException e) {
+            assertEquals(HttpStatus.UNAUTHORIZED.value(), e.status());
+        }
+    }
+
+    @Test
+    public void getFederationGroupedPlatformMisdeedsReportsFailEmptySecurityRequest() throws SecurityHandlerException {
+
+        when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenReturn(new SecurityRequest(""));
+
+        try {
+            componentSecurityHandlerProvider.getComponentSecurityHandler().getFederationGroupedPlatformMisdeedsReports(resourcePlatformId, federationId);
+            fail();
+        } catch (FeignException e) {
+            assertEquals(HttpStatus.BAD_REQUEST.value(), e.status());
+        }
+    }
+
+    @Test
+    public void getPlatformGroupedPlatformMisdeedsReportsSuccess() throws SecurityHandlerException {
+
+        Map<String, OriginPlatformGroupedPlatformMisdeedsReport> response = componentSecurityHandlerProvider.getComponentSecurityHandler().getOriginPlatformGroupedPlatformMisdeedsReports(resourcePlatformId, searchOriginPlatformId);
+
+        assertEquals(1, response.size());
+
+        assertTrue(response.containsKey(resourcePlatformId));
+        assertEquals(5, response.get(resourcePlatformId).getTotalMisdeeds());
+        assertTrue(response.get(resourcePlatformId).getDetailsBySearchOriginPlatform().containsKey(searchOriginPlatformId));
+        assertEquals(3, response.get(resourcePlatformId).getDetailsBySearchOriginPlatform().get(searchOriginPlatformId).get(federationId).intValue());
+        assertEquals(2, response.get(resourcePlatformId).getDetailsBySearchOriginPlatform().get(searchOriginPlatformId).get(federationId2).intValue());
+        assertNull(response.get(resourcePlatformId).getDetailsBySearchOriginPlatform().get(searchOriginPlatformId).get(federationId3));
+        assertFalse(response.get(resourcePlatformId).getDetailsBySearchOriginPlatform().containsKey(searchOriginPlatformId2));
+        assertFalse(response.get(resourcePlatformId).getDetailsBySearchOriginPlatform().containsKey(searchOriginPlatformId3));
+
+        assertFalse(response.containsKey(resourcePlatformId2));
+        assertFalse(response.containsKey(resourcePlatformId3));
+    }
+
+    @Test
+    public void getPlatformGroupedPlatformMisdeedsReportsFailNotPassedAP() throws SecurityHandlerException {
+
+        when(mockedComponentSecurityHandler.getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any())).thenReturn(new HashSet<>());
+        try {
+            componentSecurityHandlerProvider.getComponentSecurityHandler().getOriginPlatformGroupedPlatformMisdeedsReports(resourcePlatformId, searchOriginPlatformId);
+            fail();
+        } catch (FeignException e) {
+            assertEquals(HttpStatus.UNAUTHORIZED.value(), e.status());
+        }
+    }
+
+    @Test
+    public void getPlatformGroupedPlatformMisdeedsReportsFailEmptySecurityRequest() throws SecurityHandlerException {
+
+        when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenReturn(new SecurityRequest(""));
+
+        try {
+            componentSecurityHandlerProvider.getComponentSecurityHandler().getFederationGroupedPlatformMisdeedsReports(resourcePlatformId, searchOriginPlatformId);
+            fail();
+        } catch (FeignException e) {
+            assertEquals(HttpStatus.BAD_REQUEST.value(), e.status());
+        }
+    }
+
 
 }
