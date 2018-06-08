@@ -1,32 +1,74 @@
 buildscript {
 	ext {
-		springBootVersion = '1.5.7.RELEASE'
+		asciiDocOutputDir = file("${buildDir}/asciidoc/generated")
+		swaggerOutputDir = file("${buildDir}/swagger")
+		snippetsOutputDir = file("${buildDir}/asciidoc/snippets")
+		springfoxVersion = '2.7.0'
+		swaggerAnnotationsVersion = '1.5.16'
 	}
 	repositories {
 		mavenCentral()
+		jcenter()
 	}
 	dependencies {
-		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+		classpath("io.github.swagger2markup:swagger2markup-spring-restdocs-ext:1.2.0")
+		classpath("io.github.swagger2markup:swagger2markup-gradle-plugin:1.2.0")
+		classpath("org.asciidoctor:asciidoctorj-pdf:1.5.0-alpha.10.1")
 	}
 }
 
+// new plugins syntax
 plugins {
-	id 'java'
-	id 'eclipse'
-	id 'idea'
-	id 'org.springframework.boot' version '1.5.7.RELEASE'
+	// code
+	id "java"
+	// spring
+	id "io.spring.dependency-management" version "1.0.4.RELEASE"
+	id 'org.springframework.boot' version '1.5.13.RELEASE'
+	// code quality
+	id "jacoco"
+	id "org.owasp.dependencycheck" version "3.2.0"
+	// IDEs
+	id "eclipse"
+	id "idea"
+	// publishing
+	id "com.cinnober.gradle.semver-git" version "2.3.1"
+	id "maven-publish"
+	// documentation
+	id "org.asciidoctor.convert" version "1.5.3"
 }
-group = 'eu.h2020.symbiote.security'
-version = '0.0.1-SNAPSHOT'
-sourceCompatibility = 1.8
 
+// documentation
+apply plugin: 'io.github.swagger2markup'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+project.group = 'eu.h2020.symbiote'
+
+// dependencies section
 repositories {
 	mavenCentral()
+	maven { url "https://jitpack.io" }
+}
+// Spring related configs
+ext {
+	springCloudVersion = 'Dalston.SR5'
+}
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+	}
 }
 
-
-ext {
-	springCloudVersion = 'Dalston.SR4'
+/*
+Forces dependencies' cache invalidation for each build for dependencies marked with
+    { changing = true }
+    e.g.
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:develop-SNAPSHOT'){ changing = true }
+ */
+configurations.all {
+	// check for updates every build
+	resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 }
 
 dependencies {
@@ -41,36 +83,142 @@ dependencies {
             3) project dependency requires changes in settings.gradle file in this project
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
-	//compile('com.github.symbiote-h2020:SymbIoTeSecurity:21.3+'){ changing = true }
+	//compile('com.github.symbiote-h2020:SymbIoTeSecurity:[25.6, 25.999]'){ changing = true }
 	// allows to select the downloaded matching sources in IntelliJ Idea as it fails to do so automatically from jitpack repo
-	//compile('com.github.symbiote-h2020:SymbIoTeSecurity:21.3+:sources'){ changing = true }
+	//compile('com.github.symbiote-h2020:SymbIoTeSecurity:[25.3, 25.999]:sources'){ changing = true }
 	compile project(':SymbIoTeSecurity')
 
-	//compile('com.github.symbiote-h2020:SymbIoTeLibraries:[5.6.1, 5.999]'){ changing = true }
-	compile project(':SymbIoTeLibraries')
+	compile('com.github.symbiote-h2020:SymbIoTeLibraries:[5.15.1, 5.999]'){ changing = true }
+	//compile project(':SymbIoTeLibraries')
 
+	// Spring
 	compile('org.springframework.cloud:spring-cloud-starter')
+	compile('org.springframework.cloud:spring-cloud-starter-config')
+	compile('org.springframework.cloud:spring-cloud-starter-eureka')
+	compile('org.springframework.cloud:spring-cloud-starter-zipkin')
 	compile('org.springframework.boot:spring-boot-starter-amqp')
-	//compile('org.springframework.cloud:spring-cloud-starter-eureka')
-	//compile('org.springframework.cloud:spring-cloud-sleuth-zipkin-stream')
-	//compile('org.springframework.cloud:spring-cloud-starter-zipkin')
 	compile('org.springframework.boot:spring-boot-starter-data-mongodb')
-	//compile('org.springframework.boot:spring-boot-starter-mail')
-	//compile('org.springframework.boot:spring-boot-starter-security')
 	compile('org.springframework.boot:spring-boot-starter-web')
-	//runtime('io.zipkin.java:zipkin-autoconfigure-ui')
-	compileOnly('org.projectlombok:lombok')
 
+
+	// JDK 9 runtime fixes
+	if(JavaVersion.current() == JavaVersion.VERSION_1_9){
+		runtime('javax.xml.bind:jaxb-api:+')
+	}
+
+	// Swagger annotations for documentation
+	compile("io.swagger:swagger-annotations:${swaggerAnnotationsVersion}")
+
+	// tests only
+	testCompile('junit:junit:[4.12, 4.999]')
 	testCompile('org.springframework.boot:spring-boot-starter-test')
-	testCompile('de.flapdoodle.embed:de.flapdoodle.embed.mongo')
+	testCompile('com.github.fakemongo:fongo:2.1.0')
 	testCompile('org.springframework.security:spring-security-test')
-	testCompile group: 'com.icegreen', name: 'greenmail', version: '1.3.1b'
-	testCompile('com.github.fakemongo:fongo:2.1+')
+	testCompile("io.springfox:springfox-swagger2:${springfoxVersion}")
+	testCompile("io.springfox:springfox-bean-validators:${springfoxVersion}")
 }
 
+// publication
+bootRepackage {
+	classifier = 'run'
+}
 
-dependencyManagement {
-	imports {
-		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+task generateJavaDocs(type: Javadoc) {
+	source = sourceSets.main.allJava
+	destinationDir = reporting.file("javadocs")
+}
+
+task javadocJar(type: Jar, dependsOn: generateJavaDocs) {
+	classifier = 'javadoc'
+	from javadoc.destinationDir
+}
+
+task sourceJar(type: Jar) {
+	from sourceSets.main.allJava
+}
+
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			groupId = project.group
+			version = project.version
+			from components.java
+
+			artifact sourceJar {
+				classifier "sources"
+			}
+
+			//artifact javadocJar
+
+			artifact(file("$libsDir/$project.name-$project.version-${bootRepackage.classifier}.jar")) {
+				classifier "run"
+			}
+		}
 	}
+}
+
+publishToMavenLocal.dependsOn(bootRepackage)
+
+// code quality below
+// jacoco configuration section
+jacoco {
+	toolVersion = "0.7.9"
+}
+
+jacocoTestReport {
+	reports {
+		xml.enabled = true
+		html.enabled = true
+	}
+}
+
+// owasp config
+dependencyCheck {
+	outputDirectory = "build/reports/security"
+}
+
+// including code quality extensions into the build
+check.dependsOn(jacocoTestReport)//,'dependencyCheckAnalyze')
+
+test {
+	// we don't need that for testing,
+	exclude '**/Swagger*'
+
+	testLogging {
+		exceptionFormat = 'full'
+	}
+}
+
+// documentation below
+task swaggerGeneratorTest(type: Test, dependsOn: testClasses) {
+	include '**/Swagger*'
+	systemProperty 'io.springfox.staticdocs.outputDir', swaggerOutputDir
+	systemProperty 'io.springfox.staticdocs.snippetsOutputDir', snippetsOutputDir
+}
+
+convertSwagger2markup {
+	dependsOn swaggerGeneratorTest
+	swaggerInput "${swaggerOutputDir}/swagger.json"
+	outputDir asciiDocOutputDir
+	config = [
+			'swagger2markup.pathsGroupedBy' : 'TAGS',
+			'swagger2markup.extensions.springRestDocs.snippetBaseUri': snippetsOutputDir.getAbsolutePath()]
+}
+
+asciidoctor {
+	dependsOn convertSwagger2markup
+	sources {
+		include 'index.adoc'
+	}
+	backends = ['html5', 'pdf']
+	attributes = [
+			doctype: 'book',
+			toc: 'left',
+			toclevels: '3',
+			numbered: '',
+			sectlinks: '',
+			sectanchors: '',
+			hardbreaks: '',
+			generated: asciiDocOutputDir
+	]
 }
