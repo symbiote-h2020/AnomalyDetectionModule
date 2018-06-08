@@ -91,7 +91,7 @@ public class FailedAuthorizationUnitTests extends AbstractADMTestSuite {
         assertEquals(federationId, failedFederatedAccessReport.getFederationId());
         assertEquals(resourcePlatformId, failedFederatedAccessReport.getTargetPlatformId());
         assertEquals(resourceId, failedFederatedAccessReport.getResourceId());
-        assertEquals(searchOriginPlatformId, failedFederatedAccessReport.getOriginPlatfomId());
+        assertEquals(searchOriginPlatformId, failedFederatedAccessReport.getOriginPlatformId());
         assertEquals(timestamp, failedFederatedAccessReport.getTimestamp());
     }
 

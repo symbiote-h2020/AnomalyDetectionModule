@@ -54,22 +54,17 @@ public class FailedFederatedAccessReportsStatisticsController implements IFailed
             @RequestHeader HttpHeaders httpHeaders,
             @RequestParam(value = "platformId", required = false) String platformIdFilter,
             @RequestParam(value = "searchOriginPlatformId", required = false) String singleSearchOriginPlatformFilter) {
-        HttpHeaders responseHttpHeaders = new HttpHeaders();
-        try {
-            responseHttpHeaders.add(SecurityConstants.SECURITY_RESPONSE_HEADER, componentSecurityHandlerProvider.getComponentSecurityHandler().generateServiceResponse());
-        } catch (SecurityHandlerException e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-        try {
-            SecurityRequest securityRequest = new SecurityRequest(httpHeaders.toSingleValueMap());
-            HttpStatus validationHttpStatus = checkReceivedSR(securityRequest);
-            if (!validationHttpStatus.equals(HttpStatus.OK))
-                return new ResponseEntity<>(validationHttpStatus);
-        } catch (InvalidArgumentsException | MalformedJWTException e) {
-            log.error("Received security request is malformed: " + e.getMessage());
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-        return new ResponseEntity<>(failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByPlatform(platformIdFilter, singleSearchOriginPlatformFilter), responseHttpHeaders, HttpStatus.OK);
+
+        // validate the client
+        HttpStatus validationHttpStatus = validateClientCredentials(httpHeaders);
+        if (!validationHttpStatus.equals(HttpStatus.OK))
+            return getResponseWithSecurityHeaders(null, validationHttpStatus);
+
+        // do the magic
+        Map<String, OriginPlatformGroupedPlatformMisdeedsReport> misdeedsGroupedByPlatform =
+                failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByPlatform(platformIdFilter, singleSearchOriginPlatformFilter);
+
+        return getResponseWithSecurityHeaders(misdeedsGroupedByPlatform, HttpStatus.OK);
     }
 
     @Override
@@ -77,45 +72,56 @@ public class FailedFederatedAccessReportsStatisticsController implements IFailed
             @RequestHeader HttpHeaders httpHeaders,
             @RequestParam(value = "platformId", required = false) String platformIdFilter,
             @RequestParam(value = "federationId", required = false) String federationIdFilter) {
-        HttpHeaders responseHttpHeaders = new HttpHeaders();
-        try {
-            responseHttpHeaders.add(SecurityConstants.SECURITY_RESPONSE_HEADER, componentSecurityHandlerProvider.getComponentSecurityHandler().generateServiceResponse());
-        } catch (SecurityHandlerException e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-        try {
-            SecurityRequest securityRequest = new SecurityRequest(httpHeaders.toSingleValueMap());
-            HttpStatus validationHttpStatus = checkReceivedSR(securityRequest);
-            if (!validationHttpStatus.equals(HttpStatus.OK))
-                return new ResponseEntity<>(validationHttpStatus);
-        } catch (InvalidArgumentsException | MalformedJWTException e) {
-            log.error("Received security request is malformed: " + e.getMessage());
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-        return new ResponseEntity<>(failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByFederations(platformIdFilter, federationIdFilter), responseHttpHeaders, HttpStatus.OK);
+
+        HttpStatus validationHttpStatus = validateClientCredentials(httpHeaders);
+        if (!validationHttpStatus.equals(HttpStatus.OK))
+            return getResponseWithSecurityHeaders(null, validationHttpStatus);
+
+        // do the magic
+        Map<String, FederationGroupedPlatformMisdeedsReport> misdeedsGroupedByFederations =
+                failedFederatedAccessReportsStatisticsService.getMisdeedsGroupedByFederations(platformIdFilter, federationIdFilter);
+
+        return getResponseWithSecurityHeaders(misdeedsGroupedByFederations, HttpStatus.OK);
+
     }
 
-    private HttpStatus checkReceivedSR(SecurityRequest securityRequest) throws
-            MalformedJWTException,
-            InvalidArgumentsException {
-        if (securityRequest.getSecurityCredentials().isEmpty())
-            return HttpStatus.UNAUTHORIZED;
-        JWTClaims claims = JWTEngine.getClaimsFromToken(securityRequest.getSecurityCredentials().iterator().next().getToken());
-        // building CHTAP access policy basing on platform found in ISS of security request token
-        Map<String, IAccessPolicy> componentHomeTokenAPs = new HashMap<>();
-        String componentHTPolicyId = "admAccessPolicy";
-        SingleTokenAccessPolicySpecifier policySpecifier =
-                new SingleTokenAccessPolicySpecifier("tm", claims.getIss());
-        componentHomeTokenAPs.put(componentHTPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(policySpecifier));
+    private HttpStatus validateClientCredentials(@RequestHeader HttpHeaders httpHeaders) {
+        try {
+            SecurityRequest securityRequest = new SecurityRequest(httpHeaders.toSingleValueMap());
+            if (securityRequest.getSecurityCredentials().isEmpty())
+                return HttpStatus.UNAUTHORIZED;
+            JWTClaims claims = JWTEngine.getClaimsFromToken(securityRequest.getSecurityCredentials().iterator().next().getToken());
+            // building CHTAP access policy basing on platform found in ISS of security request token
+            Map<String, IAccessPolicy> componentHomeTokenAPs = new HashMap<>();
+            String componentHTPolicyId = "admAccessPolicy";
+            SingleTokenAccessPolicySpecifier policySpecifier =
+                    new SingleTokenAccessPolicySpecifier("tm", claims.getIss());
+            componentHomeTokenAPs.put(componentHTPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(policySpecifier));
 
-        if (componentSecurityHandlerProvider
-                .getComponentSecurityHandler()
-                .getSatisfiedPoliciesIdentifiers(componentHomeTokenAPs, securityRequest)
-                .size() != 1) {
-            log.error("Received security request is not passing ADM Access Policy.");
-            return HttpStatus.UNAUTHORIZED;
+            if (componentSecurityHandlerProvider
+                    .getComponentSecurityHandler()
+                    .getSatisfiedPoliciesIdentifiers(componentHomeTokenAPs, securityRequest)
+                    .size() != 1) {
+                log.error("Received security request is not passing ADM Access Policy.");
+                return HttpStatus.UNAUTHORIZED;
+            }
+        } catch (InvalidArgumentsException | MalformedJWTException e) {
+            log.error("Received security request is malformed: " + e.getMessage());
+            return HttpStatus.BAD_REQUEST;
         }
         return HttpStatus.OK;
     }
 
+    private <T> ResponseEntity<T> getResponseWithSecurityHeaders(T body, HttpStatus httpStatus) {
+        try {
+            // prepare response
+            HttpHeaders responseHttpHeaders = new HttpHeaders();
+            responseHttpHeaders.add(SecurityConstants.SECURITY_RESPONSE_HEADER, componentSecurityHandlerProvider.getComponentSecurityHandler().generateServiceResponse());
+            if (body == null)
+                new ResponseEntity(responseHttpHeaders, httpStatus);
+            return new ResponseEntity<>(body, responseHttpHeaders, httpStatus);
+        } catch (SecurityHandlerException e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

@@ -33,9 +33,10 @@ public class FailedFederatedAccessReportsStatisticsService {
     private int total = 0;
 
     @Autowired
-    public FailedFederatedAccessReportsStatisticsService(@Value("${adm.database.name}") String databaseName,
-                                                         MongoClient mongoClient) {
-        this.mongoDatabase = mongoClient.getDatabase(databaseName);
+    public FailedFederatedAccessReportsStatisticsService(
+            @Value("adm.database.host") String databaseHost,
+            @Value("${adm.database.name}") String databaseName) {
+        this.mongoDatabase = new MongoClient(databaseHost).getDatabase(databaseName);
     }
 
     public Map<String, OriginPlatformGroupedPlatformMisdeedsReport> getMisdeedsGroupedByPlatform(

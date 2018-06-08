@@ -5,7 +5,7 @@ import feign.Param;
 import feign.RequestLine;
 
 /**
- * Feign Client responsible for communication with Platform Registryparam
+ * Feign Client responsible for communication with Platform Registry
  *
  * @author Jakub Toczek (PSNC)
  * @author Mikołaj Dobski (PSNC)

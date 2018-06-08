@@ -4,6 +4,7 @@ package eu.h2020.symbiote.security.utils;
 import eu.h2020.symbiote.cloud.model.internal.CloudResource;
 import eu.h2020.symbiote.cloud.model.internal.FederatedResource;
 import eu.h2020.symbiote.cloud.model.internal.FederationSearchResult;
+import eu.h2020.symbiote.model.cim.SymbolicLocation;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -92,7 +93,7 @@ public class DummyPlatformAAMAndPlatformRegistry {
         FederationSearchResult federationSearchResult = new FederationSearchResult();
         List resources = new ArrayList<FederatedResource>();
         if (returnResource) {
-            FederatedResource federatedResource = new FederatedResource("symbiote@" + resourcePlatformId, new CloudResource(), "", "", new HashSet<>());
+            FederatedResource federatedResource = new FederatedResource("symbiote@" + resourcePlatformId, new CloudResource(), "", "", new HashSet<>(), new SymbolicLocation());
             resources.add(federatedResource);
         }
         federationSearchResult.setResources(resources);

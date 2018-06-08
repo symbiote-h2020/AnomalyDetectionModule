@@ -8,18 +8,22 @@ public class FailedFederatedAccessReport {
 
     public static final String REPORTS_COLLECTION_NAME = "denied-federated-access-reports";
 
-    private long timestamp;
+    private final long timestamp;
     @Indexed
-    private String targetPlatformId;
+    private final String targetPlatformId;
     @Indexed
-    private String originPlatfomId;
+    private final String originPlatformId;
     @Indexed
-    private String federationId;
-    private String resourceId;
+    private final String federationId;
+    private final String resourceId;
 
-    public FailedFederatedAccessReport(Long timestamp, String targetPlatformId, String originPlatfomId, String federationId, String resourceId) {
+    public FailedFederatedAccessReport(Long timestamp,
+                                       String targetPlatformId,
+                                       String originPlatformId,
+                                       String federationId,
+                                       String resourceId) {
         this.targetPlatformId = targetPlatformId;
-        this.originPlatfomId = originPlatfomId;
+        this.originPlatformId = originPlatformId;
         this.federationId = federationId;
         this.resourceId = resourceId;
         this.timestamp = timestamp;
@@ -33,8 +37,8 @@ public class FailedFederatedAccessReport {
         return targetPlatformId;
     }
 
-    public String getOriginPlatfomId() {
-        return originPlatfomId;
+    public String getOriginPlatformId() {
+        return originPlatformId;
     }
 
     public String getFederationId() {
