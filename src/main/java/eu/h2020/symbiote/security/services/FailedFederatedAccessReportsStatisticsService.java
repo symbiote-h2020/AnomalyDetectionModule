@@ -27,16 +27,16 @@ import static com.mongodb.client.model.Filters.eq;
 public class FailedFederatedAccessReportsStatisticsService {
 
     private static final String TARGET_PLATFORM_ID_FIELD_NAME = "targetPlatformId";
-    private static final String ORIGIN_PLATFORM_ID_FIELD_NAME = "originPlatfomId";
+    private static final String ORIGIN_PLATFORM_ID_FIELD_NAME = "originPlatformId";
     private static final String FEDERATION_ID_FIELD_NAME = "federationId";
     private final MongoDatabase mongoDatabase;
     private int total = 0;
 
     @Autowired
     public FailedFederatedAccessReportsStatisticsService(
-            @Value("adm.database.host") String databaseHost,
-            @Value("${adm.database.name}") String databaseName) {
-        this.mongoDatabase = new MongoClient(databaseHost).getDatabase(databaseName);
+            @Value("${adm.database.name}") String databaseName,
+            MongoClient mongoClient) {
+        this.mongoDatabase = mongoClient.getDatabase(databaseName);
     }
 
     public Map<String, OriginPlatformGroupedPlatformMisdeedsReport> getMisdeedsGroupedByPlatform(

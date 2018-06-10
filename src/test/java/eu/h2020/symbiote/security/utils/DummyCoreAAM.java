@@ -57,13 +57,13 @@ public class DummyCoreAAM {
     @GetMapping(path = AAM_PATH + SecurityConstants.AAM_GET_AVAILABLE_AAMS)
     public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() {
         AvailableAAMsCollection aams = new AvailableAAMsCollection(new HashMap<>());
-        aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("https://localhost:" + port + AAM_PATH,
+        aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("http://localhost:" + port + AAM_PATH,
                 SecurityConstants.CORE_AAM_INSTANCE_ID, SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                 coreCert, new HashMap<>()));
         //adding any cert as platform one
         if (provideSearchOriginPlatform)
             aams.getAvailableAAMs().put(FailedAuthorizationUnitTests.searchOriginPlatformId,
-                    new AAM("https://localhost:" + port + "/test/platform",
+                    new AAM("http://localhost:" + port + "/test/platform",
                             FailedAuthorizationUnitTests.searchOriginPlatformId,
                             FailedAuthorizationUnitTests.searchOriginPlatformId,
                             coreCert,

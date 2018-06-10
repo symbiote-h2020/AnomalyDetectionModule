@@ -89,7 +89,7 @@ public abstract class AbstractADMTestSuite {
     public void setUp() throws Exception {
         // Catch the random port
         dummyCoreAAM.port = port;
-        serverAddress = "https://localhost:" + port;
+        serverAddress = "http://localhost:" + port;
         failedFederatedAccessReportsRepository.deleteAll();
         federationsRepository.deleteAll();
     }
