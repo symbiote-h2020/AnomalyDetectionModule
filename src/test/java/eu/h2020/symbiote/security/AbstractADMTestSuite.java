@@ -40,12 +40,8 @@ public abstract class AbstractADMTestSuite {
     protected String ADMOwnerPassword;
     @Value("${adm.security.KEY_STORE_PASSWORD}")
     protected String KEY_STORE_PASSWORD;
-    @Value("${adm.security.PV_KEY_PASSWORD}")
-    protected String PV_KEY_PASSWORD;
     @Value("${adm.security.KEY_STORE_FILE_NAME}")
     protected String KEY_STORE_FILE_NAME;
-    @Value("${adm.security.CERTIFICATE_ALIAS}")
-    protected String CERTIFICATE_ALIAS;
     @Autowired
     protected FailedFederatedAccessReportsRepository failedFederatedAccessReportsRepository;
     @Autowired
