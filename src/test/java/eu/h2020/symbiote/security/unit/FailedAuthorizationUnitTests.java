@@ -1,14 +1,18 @@
 package eu.h2020.symbiote.security.unit;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractADMTestSuite;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ADMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
+import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.FailedFederationAuthorizationReport;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.ComponentSecurityHandler;
+import eu.h2020.symbiote.security.handler.SecurityHandler;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
 import eu.h2020.symbiote.security.repositories.entities.FailedFederatedAccessReport;
 import eu.h2020.symbiote.security.services.FailedFederatedAccessReportingService;
@@ -27,6 +31,7 @@ import java.util.Set;
 
 import static eu.h2020.symbiote.security.services.FailedFederatedAccessReportingService.AP_NAME;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 public class FailedAuthorizationUnitTests extends AbstractADMTestSuite {
@@ -49,6 +54,11 @@ public class FailedAuthorizationUnitTests extends AbstractADMTestSuite {
         ComponentSecurityHandler mockedComponentSecurityHandler = Mockito.mock(ComponentSecurityHandler.class);
         Set<String> set = new HashSet<>();
         set.add(AP_NAME);
+        SecurityHandler mockedSecurityHandler = Mockito.mock(SecurityHandler.class);
+        when(mockedSecurityHandler.reportFailedFederationAuthorization(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any())).thenCallRealMethod();
+        // server address without /adm
+        when(mockedSecurityHandler.getCoreAAMInstance()).thenReturn(new AAM(serverAddress.substring(0, serverAddress.length() - 4), null, null, null, null, null));
+        when(mockedComponentSecurityHandler.getSecurityHandler()).thenReturn(mockedSecurityHandler);
         when(mockedComponentSecurityHandler.getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any())).thenReturn(set);
         when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenReturn(new SecurityRequest(new HashSet<>(), 0));
         when(mockedComponentSecurityHandler.isReceivedServiceResponseVerified(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(true);
@@ -84,6 +94,15 @@ public class FailedAuthorizationUnitTests extends AbstractADMTestSuite {
 
         //component SH mocked to return true in SecurityRequest check
         FailedFederationAuthorizationReport failedFederationAuthorizationReport = new FailedFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), timestamp), federationId, resourcePlatformId, searchOriginPlatformId, resourceId);
+
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            System.out.println(mapper.writeValueAsString(failedFederationAuthorizationReport));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        System.out.println(failedFederationAuthorizationReport.toString());
+
         assertEquals(HttpStatus.OK, failedFederatedAccessReportingService.handleReport(failedFederationAuthorizationReport));
         //DB check if new report added
         assertEquals(1, failedFederatedAccessReportsRepository.count());
@@ -200,6 +219,24 @@ public class FailedAuthorizationUnitTests extends AbstractADMTestSuite {
         dummyPlatformAAMAndPlatformRegistry.resourcePlatformId = "notFederatedPlatformId";
         FailedFederationAuthorizationReport failedFederationAuthorizationReport = new FailedFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), timestamp), federationId, resourcePlatformId, searchOriginPlatformId, resourceId);
         assertEquals(HttpStatus.NOT_FOUND, failedFederatedAccessReportingService.handleReport(failedFederationAuthorizationReport));
+    }
+
+    @Test
+    public void reportFailedFederation() throws ADMException {
+        boolean returned = componentSecurityHandlerProvider.getComponentSecurityHandler().getSecurityHandler().reportFailedFederationAuthorization(
+                new SecurityRequest(new HashSet<>(), timestamp),
+                federationId,
+                resourcePlatformId,
+                resourceId,
+                searchOriginPlatformId);
+        assertTrue(returned);
+        assertEquals(1, failedFederatedAccessReportsRepository.count());
+        FailedFederatedAccessReport failedFederatedAccessReport = failedFederatedAccessReportsRepository.findAll().get(0);
+        assertEquals(federationId, failedFederatedAccessReport.getFederationId());
+        assertEquals(resourcePlatformId, failedFederatedAccessReport.getTargetPlatformId());
+        assertEquals(resourceId, failedFederatedAccessReport.getResourceId());
+        assertEquals(searchOriginPlatformId, failedFederatedAccessReport.getOriginPlatformId());
+        assertEquals(timestamp, failedFederatedAccessReport.getTimestamp());
     }
 
 }

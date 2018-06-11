@@ -29,6 +29,7 @@ import java.util.HashMap;
  */
 @RestController
 public class DummyCoreAAM {
+
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/keystores/core.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String AAM_PATH = "/test/caam";
@@ -57,13 +58,13 @@ public class DummyCoreAAM {
     @GetMapping(path = AAM_PATH + SecurityConstants.AAM_GET_AVAILABLE_AAMS)
     public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() {
         AvailableAAMsCollection aams = new AvailableAAMsCollection(new HashMap<>());
-        aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("http://localhost:" + port + AAM_PATH,
+        aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("http://localhost:" + port + SecurityConstants.ADM_PREFIX + AAM_PATH,
                 SecurityConstants.CORE_AAM_INSTANCE_ID, SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                 coreCert, new HashMap<>()));
         //adding any cert as platform one
         if (provideSearchOriginPlatform)
             aams.getAvailableAAMs().put(FailedAuthorizationUnitTests.searchOriginPlatformId,
-                    new AAM("http://localhost:" + port + "/test/platform",
+                    new AAM("http://localhost:" + port + SecurityConstants.ADM_PREFIX + "/test/platform",
                             FailedAuthorizationUnitTests.searchOriginPlatformId,
                             FailedAuthorizationUnitTests.searchOriginPlatformId,
                             coreCert,

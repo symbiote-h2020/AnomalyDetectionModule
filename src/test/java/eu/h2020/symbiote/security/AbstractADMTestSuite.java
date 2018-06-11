@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.repositories.FailedFederatedAccessReportsRepository;
 import eu.h2020.symbiote.security.repositories.FederationsRepository;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
@@ -85,7 +86,7 @@ public abstract class AbstractADMTestSuite {
     public void setUp() throws Exception {
         // Catch the random port
         dummyCoreAAM.port = port;
-        serverAddress = "http://localhost:" + port;
+        serverAddress = "http://localhost:" + port + SecurityConstants.ADM_PREFIX;
         failedFederatedAccessReportsRepository.deleteAll();
         federationsRepository.deleteAll();
     }
