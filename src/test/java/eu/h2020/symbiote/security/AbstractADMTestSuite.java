@@ -33,8 +33,8 @@ import java.security.cert.X509Certificate;
 public abstract class AbstractADMTestSuite {
 
     protected String serverAddress;
-    @Value("${symbIoTe.core.interface.url:http://localhost:8443}")
-    protected String coreInterfaceAddress;
+    @Value("${symbIoTe.localaam.url=http://localhost:8443}")
+    protected String localAAMAddress;
     @Value("${adm.deployment.owner.username}")
     protected String ADMOwnerUsername;
     @Value("${adm.deployment.owner.password}")

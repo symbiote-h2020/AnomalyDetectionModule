@@ -18,7 +18,7 @@ public class ComponentSecurityHandlerProvider {
                                             @Value("${adm.security.KEY_STORE_PASSWORD}") String keyStorePassword,
                                             @Value("${adm.deployment.owner.username}") String AAMOwnerUsername,
                                             @Value("${adm.deployment.owner.password}") String AAMOwnerPassword,
-                                            @Value("${symbIoTe.core.interface.url}") String coreAAMAddress) throws
+                                            @Value("${symbIoTe.localaam.url}") String coreAAMAddress) throws
             SecurityHandlerException {
 
         componentSecurityHandler = ComponentSecurityHandlerFactory.getComponentSecurityHandler(

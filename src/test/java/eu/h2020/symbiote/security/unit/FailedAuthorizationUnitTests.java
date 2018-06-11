@@ -63,7 +63,7 @@ public class FailedAuthorizationUnitTests extends AbstractADMTestSuite {
         when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenReturn(new SecurityRequest(new HashSet<>(), 0));
         when(mockedComponentSecurityHandler.isReceivedServiceResponseVerified(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(true);
         when(componentSecurityHandlerProvider.getComponentSecurityHandler()).thenReturn(mockedComponentSecurityHandler);
-        ReflectionTestUtils.setField(failedFederatedAccessReportingService, "coreInterfaceAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(failedFederatedAccessReportingService, "localAAMAddress", serverAddress + "/test/caam");
 
         ECDSAHelper.enableECDSAProvider();
 
@@ -184,7 +184,7 @@ public class FailedAuthorizationUnitTests extends AbstractADMTestSuite {
             InvalidArgumentsException,
             ADMException,
             SecurityHandlerException {
-        ReflectionTestUtils.setField(failedFederatedAccessReportingService, "coreInterfaceAddress", "wrong server address");
+        ReflectionTestUtils.setField(failedFederatedAccessReportingService, "localAAMAddress", "wrong server address");
         FailedFederationAuthorizationReport failedFederationAuthorizationReport = new FailedFederationAuthorizationReport(new SecurityRequest(new HashSet<>(), timestamp), federationId, resourcePlatformId, searchOriginPlatformId, resourceId);
         failedFederatedAccessReportingService.handleReport(failedFederationAuthorizationReport);
     }

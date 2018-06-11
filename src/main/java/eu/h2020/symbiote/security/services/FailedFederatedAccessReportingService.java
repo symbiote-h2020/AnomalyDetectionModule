@@ -45,18 +45,18 @@ public class FailedFederatedAccessReportingService {
     public static final String MAPPING = "/pr";
     private FederationsRepository federationsRepository;
     private ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
-    private String coreInterfaceAddress;
+    private String localAAMAddress;
     private static final Log log = LogFactory.getLog(FailedFederatedAccessReportingService.class);
 
     @Autowired
     public FailedFederatedAccessReportingService(FailedFederatedAccessReportsRepository failedFederatedAccessReportsRepository,
                                                  ComponentSecurityHandlerProvider componentSecurityHandlerProvider,
                                                  FederationsRepository federationsRepository,
-                                                 @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress) {
+                                                 @Value("${symbIoTe.localaam.url}") String localAAMAddress) {
         this.failedFederatedAccessReportsRepository = failedFederatedAccessReportsRepository;
         this.componentSecurityHandlerProvider = componentSecurityHandlerProvider;
         this.federationsRepository = federationsRepository;
-        this.coreInterfaceAddress = coreInterfaceAddress;
+        this.localAAMAddress = localAAMAddress;
     }
 
     public HttpStatus handleReport(FailedFederationAuthorizationReport failedFederationAuthorizationReport) throws
@@ -109,7 +109,7 @@ public class FailedFederatedAccessReportingService {
         }
 
         //get the platform address
-        AAMClient aamClient = new AAMClient(coreInterfaceAddress);
+        AAMClient aamClient = new AAMClient(localAAMAddress);
         AvailableAAMsCollection availableAAMsCollection;
         try {
             availableAAMsCollection = aamClient.getAvailableAAMs();
