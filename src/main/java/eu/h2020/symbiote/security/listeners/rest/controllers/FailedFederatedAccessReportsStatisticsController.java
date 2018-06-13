@@ -87,9 +87,13 @@ public class FailedFederatedAccessReportsStatisticsController implements IFailed
 
     private HttpStatus validateClientCredentials(@RequestHeader HttpHeaders httpHeaders) {
         try {
-            SecurityRequest securityRequest = new SecurityRequest(httpHeaders.toSingleValueMap());
-            if (securityRequest.getSecurityCredentials().isEmpty())
+            SecurityRequest securityRequest;
+            try {
+                securityRequest = new SecurityRequest(httpHeaders.toSingleValueMap());
+            } catch (InvalidArgumentsException e) {
+                // cause empty map causes exception
                 return HttpStatus.UNAUTHORIZED;
+            }
             JWTClaims claims = JWTEngine.getClaimsFromToken(securityRequest.getSecurityCredentials().iterator().next().getToken());
             // building CHTAP access policy basing on platform found in ISS of security request token
             Map<String, IAccessPolicy> componentHomeTokenAPs = new HashMap<>();
