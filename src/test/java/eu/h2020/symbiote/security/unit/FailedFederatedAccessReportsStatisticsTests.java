@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.unit;
 
+import com.sun.javafx.scene.control.behavior.OptionalBoolean;
 import eu.h2020.symbiote.security.AbstractADMTestSuite;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
@@ -22,6 +23,7 @@ import org.springframework.http.HttpStatus;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static eu.h2020.symbiote.security.services.FailedFederatedAccessReportingService.AP_NAME;
@@ -353,7 +355,8 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
     @Test
     public void getFederationGroupedPlatformMisdeedsReportsSuccess() throws SecurityHandlerException {
 
-        Map<String, FederationGroupedPlatformMisdeedsReport> response = componentSecurityHandlerProvider.getComponentSecurityHandler().getFederationGroupedPlatformMisdeedsReports(resourcePlatformId, federationId);
+        Map<String, FederationGroupedPlatformMisdeedsReport> response = componentSecurityHandlerProvider.getComponentSecurityHandler().getFederationGroupedPlatformMisdeedsReports(
+                Optional.of(resourcePlatformId), Optional.of(federationId));
 
         assertEquals(1, response.size());
 
@@ -375,7 +378,8 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
 
         when(mockedComponentSecurityHandler.getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any())).thenReturn(new HashSet<>());
         try {
-            componentSecurityHandlerProvider.getComponentSecurityHandler().getFederationGroupedPlatformMisdeedsReports(resourcePlatformId, federationId);
+            componentSecurityHandlerProvider.getComponentSecurityHandler().getFederationGroupedPlatformMisdeedsReports(
+                    Optional.of(resourcePlatformId), Optional.of(federationId));
             fail();
         } catch (FeignException e) {
             assertEquals(HttpStatus.UNAUTHORIZED.value(), e.status());
@@ -388,7 +392,8 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
         when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenReturn(new SecurityRequest(""));
 
         try {
-            componentSecurityHandlerProvider.getComponentSecurityHandler().getFederationGroupedPlatformMisdeedsReports(resourcePlatformId, federationId);
+            componentSecurityHandlerProvider.getComponentSecurityHandler().getFederationGroupedPlatformMisdeedsReports(
+                    Optional.of(resourcePlatformId), Optional.of(federationId));
             fail();
         } catch (FeignException e) {
             assertEquals(HttpStatus.BAD_REQUEST.value(), e.status());
@@ -398,7 +403,8 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
     @Test
     public void getPlatformGroupedPlatformMisdeedsReportsSuccess() throws SecurityHandlerException {
 
-        Map<String, OriginPlatformGroupedPlatformMisdeedsReport> response = componentSecurityHandlerProvider.getComponentSecurityHandler().getOriginPlatformGroupedPlatformMisdeedsReports(resourcePlatformId, searchOriginPlatformId);
+        Map<String, OriginPlatformGroupedPlatformMisdeedsReport> response = componentSecurityHandlerProvider.getComponentSecurityHandler().getOriginPlatformGroupedPlatformMisdeedsReports(
+                Optional.of(resourcePlatformId), Optional.of(searchOriginPlatformId));
 
         assertEquals(1, response.size());
 
@@ -420,7 +426,8 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
 
         when(mockedComponentSecurityHandler.getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any())).thenReturn(new HashSet<>());
         try {
-            componentSecurityHandlerProvider.getComponentSecurityHandler().getOriginPlatformGroupedPlatformMisdeedsReports(resourcePlatformId, searchOriginPlatformId);
+            componentSecurityHandlerProvider.getComponentSecurityHandler().getOriginPlatformGroupedPlatformMisdeedsReports(
+                    Optional.of(resourcePlatformId), Optional.of(searchOriginPlatformId));
             fail();
         } catch (FeignException e) {
             assertEquals(HttpStatus.UNAUTHORIZED.value(), e.status());
@@ -433,11 +440,13 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
         when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenReturn(new SecurityRequest(""));
 
         try {
-            componentSecurityHandlerProvider.getComponentSecurityHandler().getFederationGroupedPlatformMisdeedsReports(resourcePlatformId, searchOriginPlatformId);
+            componentSecurityHandlerProvider.getComponentSecurityHandler().getFederationGroupedPlatformMisdeedsReports(
+                    Optional.of(resourcePlatformId), Optional.of(searchOriginPlatformId));
             fail();
         } catch (FeignException e) {
             assertEquals(HttpStatus.BAD_REQUEST.value(), e.status());
         }
+        fail();
     }
 
 
