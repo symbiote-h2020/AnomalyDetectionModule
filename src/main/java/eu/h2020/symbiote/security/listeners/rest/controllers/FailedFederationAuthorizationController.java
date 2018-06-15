@@ -6,6 +6,7 @@ import eu.h2020.symbiote.security.communication.payloads.FailedFederationAuthori
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IFailedFederationAuthorization;
 import eu.h2020.symbiote.security.services.FailedFederatedAccessReportingService;
 import eu.h2020.symbiote.security.services.helpers.ComponentSecurityHandlerProvider;
+import io.swagger.annotations.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Jakub Toczek (PSNC)
  * @see FailedFederatedAccessReportingService
  */
+@Api(value = "/docs/reportFailedFederationAuthorization", description = "Exposes a service that handles reports of failed authorization within the federation")
 @RestController
 public class FailedFederationAuthorizationController implements IFailedFederationAuthorization {
 
@@ -38,8 +40,15 @@ public class FailedFederationAuthorizationController implements IFailedFederatio
     }
 
     @Override
+    @ApiOperation(value = "Handles received reports of failed authorization within the federation", response = HttpStatus.class)
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "Report was correctly verified and saved."),
+            @ApiResponse(code = 400, message = "Received report is not correctly built."),
+            @ApiResponse(code = 401, message = "Received security request doesn't provide access to reported resource."),
+            @ApiResponse(code = 404, message = "Some of the reported entities are unrecognized."),
+            @ApiResponse(code = 500, message = "Internal Server Error.")})
     public ResponseEntity<String> handleFailFederationAuthorizationReport(
-            @RequestBody FailedFederationAuthorizationReport failedFederationAuthorizationReport) {
+            @RequestBody @ApiParam(name = "FailedFederationAuthorizationReport", required = true) FailedFederationAuthorizationReport failedFederationAuthorizationReport) {
         try {
             return getResponseWithSecurityHeaders(failedFederatedAccessReportingService.handleReport(failedFederationAuthorizationReport));
         } catch (Exception e) {

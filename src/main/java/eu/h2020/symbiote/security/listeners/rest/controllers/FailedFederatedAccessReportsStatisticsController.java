@@ -15,6 +15,7 @@ import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IFailedFederatedAccessReportsStatistics;
 import eu.h2020.symbiote.security.services.FailedFederatedAccessReportsStatisticsService;
 import eu.h2020.symbiote.security.services.helpers.ComponentSecurityHandlerProvider;
+import io.swagger.annotations.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,7 @@ import java.util.Map;
  * @author Jakub Toczek (PSNC)
  * @see FailedFederatedAccessReportsStatisticsService
  */
+@Api(value = "/docs/getPlatformMisdeedsReport", description = "Exposes a service that creates reports about platform misdeeds within federations")
 @RestController
 public class FailedFederatedAccessReportsStatisticsController implements IFailedFederatedAccessReportsStatistics {
 
@@ -50,10 +52,15 @@ public class FailedFederatedAccessReportsStatisticsController implements IFailed
     }
 
     @Override
+    @ApiOperation(value = "Returns information about platforms misdeeds, grouped by search origin platforms", response = OriginPlatformGroupedPlatformMisdeedsReport.class, responseContainer = "Map")
+    @ApiResponses({
+            @ApiResponse(code = 400, message = "Received security request was malformed"),
+            @ApiResponse(code = 401, message = "Unauthorized Entry"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     public ResponseEntity<Map<String, OriginPlatformGroupedPlatformMisdeedsReport>> getMisdeedsGroupedByPlatform(
-            @RequestHeader HttpHeaders httpHeaders,
-            @RequestParam(value = "platformId", required = false) String platformIdFilter,
-            @RequestParam(value = "searchOriginPlatformId", required = false) String singleSearchOriginPlatformFilter) {
+            @RequestHeader @ApiParam(value = "Security headers", required = true) HttpHeaders httpHeaders,
+            @RequestParam(value = "platformId", required = false) @ApiParam(value = "Platform filter") String platformIdFilter,
+            @RequestParam(value = "searchOriginPlatformId", required = false) @ApiParam(value = "Search Origin Platform filter") String singleSearchOriginPlatformFilter) {
 
         // validate the client
         HttpStatus validationHttpStatus = validateClientCredentials(httpHeaders);
@@ -68,10 +75,15 @@ public class FailedFederatedAccessReportsStatisticsController implements IFailed
     }
 
     @Override
+    @ApiOperation(value = "Returns information about platforms misdeeds, grouped by federations", response = FederationGroupedPlatformMisdeedsReport.class, responseContainer = "Map")
+    @ApiResponses({
+            @ApiResponse(code = 400, message = "Received security request was malformed"),
+            @ApiResponse(code = 401, message = "Unauthorized Entry"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
     public ResponseEntity<Map<String, FederationGroupedPlatformMisdeedsReport>> getMisdeedsGroupedByFederations(
-            @RequestHeader HttpHeaders httpHeaders,
-            @RequestParam(value = "platformId", required = false) String platformIdFilter,
-            @RequestParam(value = "federationId", required = false) String federationIdFilter) {
+            @RequestHeader @ApiParam(value = "Security headers", required = true) HttpHeaders httpHeaders,
+            @RequestParam(value = "platformId", required = false) @ApiParam(value = "Platform filter") String platformIdFilter,
+            @RequestParam(value = "federationId", required = false) @ApiParam(value = "Federation filter") String federationIdFilter) {
 
         HttpStatus validationHttpStatus = validateClientCredentials(httpHeaders);
         if (!validationHttpStatus.equals(HttpStatus.OK))
