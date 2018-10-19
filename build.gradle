@@ -40,6 +40,9 @@ plugins {
 // documentation
 apply plugin: 'io.github.swagger2markup'
 
+// Needed for docker
+apply plugin: 'maven-publish'
+
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
@@ -109,6 +112,10 @@ dependencies {
 	// Swagger annotations for documentation
 	compile("io.swagger:swagger-annotations:${swaggerAnnotationsVersion}")
 
+	// Needed for docker
+	compile('org.springframework.retry:spring-retry')
+	compile('org.springframework.boot:spring-boot-starter-aop')
+
 	// tests only
 	testCompile('junit:junit:[4.12, 4.999]')
 	testCompile('org.springframework.boot:spring-boot-starter-test')
@@ -116,6 +123,13 @@ dependencies {
 	testCompile('org.springframework.security:spring-security-test')
 	testCompile("io.springfox:springfox-swagger2:${springfoxVersion}")
 	testCompile("io.springfox:springfox-bean-validators:${springfoxVersion}")
+}
+
+// Needed for docker >>>>
+// publication
+jar {
+	baseName = 'AnomalyDetectionModule'
+	version = project.version
 }
 
 // publication
