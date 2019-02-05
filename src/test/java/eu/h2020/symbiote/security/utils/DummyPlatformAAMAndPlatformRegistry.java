@@ -5,7 +5,6 @@ import eu.h2020.symbiote.cloud.model.internal.CloudResource;
 import eu.h2020.symbiote.cloud.model.internal.FederatedResource;
 import eu.h2020.symbiote.cloud.model.internal.FederationSearchResult;
 import eu.h2020.symbiote.model.cim.Resource;
-import eu.h2020.symbiote.model.cim.SymbolicLocation;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -25,7 +24,6 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 
 import static eu.h2020.symbiote.security.AbstractADMTestSuite.getCertificateFromTestKeystore;
@@ -93,10 +91,12 @@ public class DummyPlatformAAMAndPlatformRegistry {
         String serviceResponse = MutualAuthenticationHelper.getServiceResponse(prPrivateKey, new Date().getTime());
         FederationSearchResult federationSearchResult = new FederationSearchResult();
         List resources = new ArrayList<FederatedResource>();
+        Resource resource = new Resource();
+        resource.setInterworkingServiceURL("https://localhost:1234");
         CloudResource cloudResource = new CloudResource();
-        cloudResource.setResource(new Resource());
+        cloudResource.setResource(resource);
         if (returnResource) {
-            FederatedResource federatedResource = new FederatedResource("symbiote@" + resourcePlatformId, cloudResource, "", "", new HashSet<>(), new SymbolicLocation());
+            FederatedResource federatedResource = new FederatedResource("symbiote@" + resourcePlatformId, cloudResource, new Double(0));
             resources.add(federatedResource);
         }
         federationSearchResult.setResources(resources);

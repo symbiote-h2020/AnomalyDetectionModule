@@ -5,6 +5,7 @@ buildscript {
 		snippetsOutputDir = file("${buildDir}/asciidoc/snippets")
 		springfoxVersion = '2.7.0'
 		swaggerAnnotationsVersion = '1.5.16'
+		springCloudVersion = 'Edgware.SR5'
 	}
 	repositories {
 		mavenCentral()
@@ -23,7 +24,7 @@ plugins {
 	id "java"
 	// spring
 	id "io.spring.dependency-management" version "1.0.4.RELEASE"
-	id 'org.springframework.boot' version '1.5.13.RELEASE'
+	id 'org.springframework.boot' version '1.5.18.RELEASE'
 	// code quality
 	id "jacoco"
 	id "org.owasp.dependencycheck" version "3.2.0"
@@ -43,17 +44,12 @@ apply plugin: 'io.github.swagger2markup'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-project.group = 'eu.h2020.symbiote'
-
 // dependencies section
 repositories {
 	mavenCentral()
 	maven { url "https://jitpack.io" }
 }
 // Spring related configs
-ext {
-	springCloudVersion = 'Dalston.SR5'
-}
 dependencyManagement {
 	imports {
 		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
@@ -83,10 +79,10 @@ dependencies {
             3) project dependency requires changes in settings.gradle file in this project
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
-	compile('com.github.symbiote-h2020:SymbIoTeSecurity:[25.7.3, 25.999]'){ changing = true }
+	//compile('com.github.symbiote-h2020:SymbIoTeSecurity:[25.7.3, 25.999]'){ changing = true }
 	// allows to select the downloaded matching sources in IntelliJ Idea as it fails to do so automatically from jitpack repo
 	//compile('com.github.symbiote-h2020:SymbIoTeSecurity:[25.3, 25.999]:sources'){ changing = true }
-	//compile project(':SymbIoTeSecurity')
+	compile project(':SymbIoTeSecurity')
 
 	compile('com.github.symbiote-h2020:SymbIoTeLibraries:[5.15.1, 5.999]'){ changing = true }
 	//compile project(':SymbIoTeLibraries')
