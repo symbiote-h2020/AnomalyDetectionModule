@@ -5,8 +5,11 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+import eu.h2020.symbiote.security.handler.NullAnomalyListenerSecurity;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 @Component
 public class ComponentSecurityHandlerProvider {
@@ -27,8 +30,8 @@ public class ComponentSecurityHandlerProvider {
                 "adm@" + SecurityConstants.CORE_AAM_INSTANCE_ID,
                 coreAAMAddress,
                 AAMOwnerUsername,
-                AAMOwnerPassword
-        );
+                AAMOwnerPassword,
+                Optional.of(new NullAnomalyListenerSecurity()));
     }
 
     public IComponentSecurityHandler getComponentSecurityHandler() {

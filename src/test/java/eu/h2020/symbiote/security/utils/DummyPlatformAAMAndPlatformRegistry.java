@@ -7,6 +7,7 @@ import eu.h2020.symbiote.cloud.model.internal.FederationSearchResult;
 import eu.h2020.symbiote.model.cim.Resource;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.communication.payloads.HandleAnomalyRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.helpers.MutualAuthenticationHelper;
 import org.apache.commons.logging.Log;
@@ -14,10 +15,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.security.*;
@@ -103,6 +101,16 @@ public class DummyPlatformAAMAndPlatformRegistry {
         HttpHeaders httpHeaders1 = new HttpHeaders();
         httpHeaders1.add("x-auth-response", serviceResponse);
         return new ResponseEntity<>(federationSearchResult, httpHeaders1, HttpStatus.OK);
+    }
+
+    @PostMapping(path = PLATFORM_PATH + SecurityConstants.ANOMALY_DETECTION_MESSAGE, produces = "application/json")
+    public ResponseEntity<String> acceptAnomaly(@RequestBody HandleAnomalyRequest handleAnomalyRequest) {
+        return new ResponseEntity<>("true", HttpStatus.OK);
+    }
+
+    @PostMapping(path = PLATFORM_PATH + SecurityConstants.LOW_PLATFORM_REPUTATION, produces = "application/json")
+    public ResponseEntity<String> acceptLowReputationRequest(@RequestBody String platformId) {
+        return new ResponseEntity<>("", HttpStatus.OK);
     }
 
 }

@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.unit.FailedAuthorizationUnitTests;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +28,7 @@ import java.util.HashMap;
  *
  * @author Jakub Toczek (PSNC)
  */
+@Profile("test")
 @RestController
 public class DummyCoreAAM {
 
@@ -70,6 +72,11 @@ public class DummyCoreAAM {
                             coreCert,
                             new HashMap<>())
             );
+        // required for old ADM tests
+        aams.getAvailableAAMs().put("12345", new AAM("http://localhost:" + port + SecurityConstants.ADM_PREFIX + "/test/platform",
+                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
+                "12345",
+                new Certificate(), new HashMap<>()));
 
         return new ResponseEntity<>(aams, HttpStatus.OK);
     }

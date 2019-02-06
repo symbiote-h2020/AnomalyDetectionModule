@@ -1,5 +1,6 @@
-package eu.h2020.symbiote.security;
+package eu.h2020.symbiote.security.utils;
 
+import eu.h2020.symbiote.security.AbstractADMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
@@ -7,7 +8,6 @@ import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.helpers.ComponentSecurityHandlerProvider;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -23,18 +23,16 @@ import java.util.HashMap;
 
 @Profile("test")
 @Configuration
-public class TestConfig {
+public class TestComponentSecurityHandlerProvider {
+
+    private final String KEY_STORE_FILE_NAME = "keystores/core_adm.p12";
+    private final String CERTIFICATE_ALIAS = "adm";
+    private final String ROOT_CERTIFICATE_ALIAS = "core-1";
+    private final String KEY_STORE_PASSWORD = "1234567";
 
     @Bean
     @Primary
-    public ComponentSecurityHandlerProvider componentSecurityHandlerProvider(
-            @Value("${adm.security.KEY_STORE_FILE_NAME}") String KEY_STORE_FILE_NAME,
-            @Value("${adm.security.CERTIFICATE_ALIAS}") String CERTIFICATE_ALIAS,
-            @Value("${adm.security.ROOT_CA_CERTIFICATE_ALIAS}") String ROOT_CERTIFICATE_ALIAS,
-            @Value("${adm.security.KEY_STORE_PASSWORD}") String KEY_STORE_PASSWORD,
-            @Value("${adm.security.PV_KEY_PASSWORD}") String PV_KEY_PASSWORD
-
-    ) throws SecurityHandlerException,
+    public ComponentSecurityHandlerProvider componentSecurityHandlerProvider() throws SecurityHandlerException,
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
@@ -60,7 +58,7 @@ public class TestConfig {
                                 KEY_STORE_FILE_NAME,
                                 KEY_STORE_PASSWORD,
                                 CERTIFICATE_ALIAS))),
-                AbstractADMTestSuite.getPrivateKeyTestFromKeystore(KEY_STORE_FILE_NAME, KEY_STORE_PASSWORD, PV_KEY_PASSWORD, CERTIFICATE_ALIAS));
+                AbstractADMTestSuite.getPrivateKeyTestFromKeystore(KEY_STORE_FILE_NAME, KEY_STORE_PASSWORD, KEY_STORE_PASSWORD, CERTIFICATE_ALIAS));
 
         Mockito.when(componentSecurityHandlerProvider.getHomeCredentials()).thenReturn(homeCredentials);
         return componentSecurityHandlerProvider;

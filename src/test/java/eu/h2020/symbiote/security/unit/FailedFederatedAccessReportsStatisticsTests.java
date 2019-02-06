@@ -80,7 +80,7 @@ public class FailedFederatedAccessReportsStatisticsTests extends AbstractADMTest
         when(mockedComponentSecurityHandler.getOriginPlatformGroupedPlatformMisdeedsReports(Mockito.anyObject(), Mockito.anyObject())).thenCallRealMethod();
         when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenReturn(new SecurityRequest("eyJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJ0ZXN0dXNlcm5hbWUiLCJzdWIiOiJ0ZXN0Y2xpZW50aWQiLCJpYXQiOjE1MDE1MDk3ODIsImV4cCI6MTUwMTUwOTg0Mn0.SGNpyl3zRA_ptRhA0lFH0o7-nhf3mpxE95ss37_jHYbCnwlRb4zDvVaYCj9DlpppU4U0y3vIPEqM44vV2UZ5Iw"));
         when(mockedComponentSecurityHandler.isReceivedServiceResponseVerified(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(true);
-        when(mockedComponentSecurityHandler.generateServiceResponse()).thenReturn("ServiceResponce");
+        when(mockedComponentSecurityHandler.generateServiceResponse()).thenReturn("ServiceResponse");
         SecurityHandler securityHandler = Mockito.mock(SecurityHandler.class);
         AAM aam = Mockito.mock(AAM.class);
         //return server address without "/adm"
