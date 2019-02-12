@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -39,14 +40,15 @@ import java.util.stream.Collectors;
  * @author Mikołaj Dobski (PSNC)
  */
 @Service
+@Profile("core")
 public class FailedFederatedAccessReportingService {
-    private FailedFederatedAccessReportsRepository failedFederatedAccessReportsRepository;
     public static final String AP_NAME = "admPolicy";
     public static final String MAPPING = "/pr";
+    private static final Log log = LogFactory.getLog(FailedFederatedAccessReportingService.class);
+    private FailedFederatedAccessReportsRepository failedFederatedAccessReportsRepository;
     private FederationsRepository federationsRepository;
     private ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
     private String localAAMAddress;
-    private static final Log log = LogFactory.getLog(FailedFederatedAccessReportingService.class);
 
     @Autowired
     public FailedFederatedAccessReportingService(FailedFederatedAccessReportsRepository failedFederatedAccessReportsRepository,
@@ -73,7 +75,7 @@ public class FailedFederatedAccessReportingService {
                 || failedFederationAuthorizationReport.getResourceId().isEmpty()
                 || failedFederationAuthorizationReport.getSearchOriginPlatformId() == null
                 || failedFederationAuthorizationReport.getSearchOriginPlatformId().isEmpty()
-                ) {
+        ) {
             log.error("Received report was malformed.");
             return HttpStatus.BAD_REQUEST;
         }

@@ -11,6 +11,7 @@ import eu.h2020.symbiote.security.repositories.entities.FailedFederatedAccessRep
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -24,6 +25,7 @@ import static com.mongodb.client.model.Filters.eq;
  * @author Mikołaj Dobski (PSNC)
  */
 @Service
+@Profile("core")
 public class FailedFederatedAccessReportsStatisticsService {
 
     private static final String TARGET_PLATFORM_ID_FIELD_NAME = "targetPlatformId";

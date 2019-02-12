@@ -19,6 +19,7 @@ import io.swagger.annotations.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +39,7 @@ import java.util.Map;
  */
 @Api(value = "/docs/getPlatformMisdeedsReport", description = "Exposes a service that creates reports about platform misdeeds within federations")
 @RestController
+@Profile("core")
 public class FailedFederatedAccessReportsStatisticsController implements IFailedFederatedAccessReportsStatistics {
 
     private static final Log log = LogFactory.getLog(FailedFederatedAccessReportsStatisticsController.class);

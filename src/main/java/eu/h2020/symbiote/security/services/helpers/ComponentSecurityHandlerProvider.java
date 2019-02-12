@@ -1,7 +1,6 @@
 package eu.h2020.symbiote.security.services.helpers;
 
 import eu.h2020.symbiote.security.ComponentSecurityHandlerFactory;
-import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
@@ -21,14 +20,15 @@ public class ComponentSecurityHandlerProvider {
                                             @Value("${adm.security.KEY_STORE_PASSWORD}") String keyStorePassword,
                                             @Value("${adm.deployment.owner.username}") String AAMOwnerUsername,
                                             @Value("${adm.deployment.owner.password}") String AAMOwnerPassword,
-                                            @Value("${symbIoTe.localaam.url}") String coreAAMAddress) throws
+                                            @Value("${platform.id}") String serviceIdentifier,
+                                            @Value("${symbIoTe.localaam.url}") String localAAMAddress) throws
             SecurityHandlerException {
 
         componentSecurityHandler = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
                 keyStoreFileName,
                 keyStorePassword,
-                "adm@" + SecurityConstants.CORE_AAM_INSTANCE_ID,
-                coreAAMAddress,
+                "adm@" + serviceIdentifier,
+                localAAMAddress,
                 AAMOwnerUsername,
                 AAMOwnerPassword,
                 Optional.of(new NullAnomalyListenerSecurity()));

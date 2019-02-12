@@ -86,6 +86,7 @@ public class EventManagerService {
         eventLogRepository.save(event);
         abuseLogRepository.save(eventLogRequest);
 
+        // old platform reputation codes (based on automated failed security events exchange... not the L2 dedicated tool)
         this.extendAbusePlatformRepository(eventLogRequest);
         String selectedPlatformId = eventLogRequest.getPlatformId();
         float platformReputation = this.platformReputation(selectedPlatformId);
@@ -98,6 +99,8 @@ public class EventManagerService {
                 log.error("Couldn't report Low Platform Reputation due to: " + e.getMessage());
             }
         }
+
+        // user misbehaviour handling codes
         if (event.getCounter() >= maxFailsNumber) {
             IAAMClient coreAamClient = new AAMClient(coreInterfaceAddress);
             HandleAnomalyRequest handleAnomalyRequest = new HandleAnomalyRequest(event.getIdentifier(), event.getEventType(), System.currentTimeMillis(), 60000);

@@ -15,8 +15,8 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
  * @author Dariusz Krajewski (Intern at PSNC)
  * @author Jakub Toczek (PSNC)
  */
+@Profile("fongo")
 @Configuration
-@Profile("test")
 @EnableMongoRepositories("eu.h2020.symbiote.security.repositories")
 public class EmbeddedMongoDatabase extends AbstractMongoConfiguration {
     @Value("${adm.database.name}")

@@ -7,7 +7,6 @@ import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.unit.FailedAuthorizationUnitTests;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,7 +27,6 @@ import java.util.HashMap;
  *
  * @author Jakub Toczek (PSNC)
  */
-@Profile("test")
 @RestController
 public class DummyCoreAAM {
 
