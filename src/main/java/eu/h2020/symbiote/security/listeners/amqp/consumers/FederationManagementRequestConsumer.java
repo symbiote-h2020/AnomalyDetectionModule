@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.security.listeners.amqp;
+package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.model.mim.Federation;
@@ -7,10 +7,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsExce
 import eu.h2020.symbiote.security.repositories.FederationsRepository;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.amqp.rabbit.annotation.Exchange;
-import org.springframework.amqp.rabbit.annotation.Queue;
-import org.springframework.amqp.rabbit.annotation.QueueBinding;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -35,7 +32,10 @@ public class FederationManagementRequestConsumer {
     }
 
     @RabbitListener(bindings = @QueueBinding(
-            value = @Queue,
+            value = @Queue(arguments = {@Argument(
+                    name = "x-message-ttl",
+                    value = "${rabbit.message-ttl}",
+                    type = "java.lang.Integer")}),
             exchange = @Exchange(
                     value = "${rabbit.exchange.federation}",
                     ignoreDeclarationExceptions = "true",
@@ -68,7 +68,10 @@ public class FederationManagementRequestConsumer {
     }
 
     @RabbitListener(bindings = @QueueBinding(
-            value = @Queue,
+            value = @Queue(arguments = {@Argument(
+                    name = "x-message-ttl",
+                    value = "${rabbit.message-ttl}",
+                    type = "java.lang.Integer")}),
             exchange = @Exchange(
                     value = "${rabbit.exchange.federation}",
                     ignoreDeclarationExceptions = "true",
@@ -94,7 +97,10 @@ public class FederationManagementRequestConsumer {
     }
 
     @RabbitListener(bindings = @QueueBinding(
-            value = @Queue,
+            value = @Queue(arguments = {@Argument(
+                    name = "x-message-ttl",
+                    value = "${rabbit.message-ttl}",
+                    type = "java.lang.Integer")}),
             exchange = @Exchange(
                     value = "${rabbit.exchange.federation}",
                     ignoreDeclarationExceptions = "true",
