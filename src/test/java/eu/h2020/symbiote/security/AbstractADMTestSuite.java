@@ -4,13 +4,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
-import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.communication.IComponentClient;
-import eu.h2020.symbiote.security.communication.payloads.AAM;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+import eu.h2020.symbiote.security.handler.ISecurityHandler;
 import eu.h2020.symbiote.security.repositories.*;
 import eu.h2020.symbiote.security.services.EventManagerService;
 import eu.h2020.symbiote.security.services.helpers.ComponentSecurityHandlerProvider;
@@ -24,8 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -34,7 +29,6 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.HashMap;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -93,6 +87,9 @@ public abstract class AbstractADMTestSuite {
     protected String oldCoreAAMAddress;
     protected String oldTrustManagerAddress;
 
+    @Autowired
+    private ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
+
 
     @BeforeClass
     public static void setupSuite() {
@@ -133,6 +130,13 @@ public abstract class AbstractADMTestSuite {
         eventLogRepository.deleteAll();
         abuseLogRepository.deleteAll();
         abusePlatformRepository.deleteAll();
+
+        // finalizing ze mocks
+        IComponentSecurityHandler mockedCSH = Mockito.mock(IComponentSecurityHandler.class);
+        ISecurityHandler mockedSH = Mockito.mock(ISecurityHandler.class);
+        Mockito.when(componentSecurityHandlerProvider.getComponentSecurityHandler()).thenReturn(mockedCSH);
+        Mockito.when(mockedCSH.getSecurityHandler()).thenReturn(mockedSH);
+        Mockito.when(mockedSH.getAvailableAAMs()).thenReturn(dummyCoreAAM.getAvailableAAMs().getBody().getAvailableAAMs());
     }
 
     public String convertObjectToJson(Object obj) throws JsonProcessingException {
@@ -140,46 +144,6 @@ public abstract class AbstractADMTestSuite {
         mapper.configure(SerializationFeature.INDENT_OUTPUT, false);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         return mapper.writeValueAsString(obj);
-    }
-
-    @Bean
-    @Primary
-    public ComponentSecurityHandlerProvider componentSecurityHandlerProvider() throws SecurityHandlerException,
-            NoSuchAlgorithmException,
-            CertificateException,
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException,
-            UnrecoverableKeyException {
-
-        String KEY_STORE_FILE_NAME = "keystores/core_adm.p12";
-        String CERTIFICATE_ALIAS = "adm";
-        String ROOT_CERTIFICATE_ALIAS = "core-1";
-        String KEY_STORE_PASSWORD = "1234567";
-
-        ComponentSecurityHandlerProvider componentSecurityHandlerProvider = Mockito.mock(ComponentSecurityHandlerProvider.class);
-        AAM aam = new AAM("",
-                "",
-                "",
-                new eu.h2020.symbiote.security.commons.Certificate(
-                        CryptoHelper.convertX509ToPEM(AbstractADMTestSuite.getCertificateFromTestKeystore(
-                                KEY_STORE_FILE_NAME,
-                                KEY_STORE_PASSWORD,
-                                ROOT_CERTIFICATE_ALIAS))),
-                new HashMap<>()
-        );
-        HomeCredentials homeCredentials = new HomeCredentials(aam,
-                "",
-                "",
-                new Certificate(
-                        CryptoHelper.convertX509ToPEM(AbstractADMTestSuite.getCertificateFromTestKeystore(
-                                KEY_STORE_FILE_NAME,
-                                KEY_STORE_PASSWORD,
-                                CERTIFICATE_ALIAS))),
-                AbstractADMTestSuite.getPrivateKeyTestFromKeystore(KEY_STORE_FILE_NAME, KEY_STORE_PASSWORD, KEY_STORE_PASSWORD, CERTIFICATE_ALIAS));
-
-        Mockito.when(componentSecurityHandlerProvider.getHomeCredentials()).thenReturn(homeCredentials);
-        return componentSecurityHandlerProvider;
     }
 
 }

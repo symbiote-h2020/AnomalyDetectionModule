@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.helpers.ComponentSecurityHandlerProvider;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -27,6 +28,9 @@ public class TestComponentSecurityHandlerProvider {
     private final String CERTIFICATE_ALIAS = "adm";
     private final String ROOT_CERTIFICATE_ALIAS = "core-1";
     private final String KEY_STORE_PASSWORD = "1234567";
+
+    @Autowired
+    protected DummyCoreAAM dummyCoreAAM;
 
     @Bean
     @Primary
