@@ -1,12 +1,10 @@
 package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.enums.EventType;
-import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
-import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.ComponentClient;
-import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
 import eu.h2020.symbiote.security.communication.payloads.HandleAnomalyRequest;
@@ -15,6 +13,7 @@ import eu.h2020.symbiote.security.repositories.AbusePlatformRepository;
 import eu.h2020.symbiote.security.repositories.EventLogRepository;
 import eu.h2020.symbiote.security.repositories.entities.AbusePlatformEntry;
 import eu.h2020.symbiote.security.repositories.entities.EventLog;
+import eu.h2020.symbiote.security.services.helpers.ComponentSecurityHandlerProvider;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +37,7 @@ public class EventManagerService {
     @Value("${adm.environment.trustManagerAddress}")
     private String trustManagerAddress;
 
+
     @Value("${adm.maxFailsNumber}")
     private int maxFailsNumber;
 
@@ -54,6 +54,9 @@ public class EventManagerService {
     private AbuseLogRepository abuseLogRepository;
     @Autowired
     private AbusePlatformRepository abusePlatformRepository;
+
+    @Autowired
+    private ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
 
     /**
      * Method used to handle incoming abuse event
@@ -102,15 +105,14 @@ public class EventManagerService {
 
         // user misbehaviour handling codes
         if (event.getCounter() >= maxFailsNumber) {
-            IAAMClient coreAamClient = new AAMClient(coreInterfaceAddress);
             HandleAnomalyRequest handleAnomalyRequest = new HandleAnomalyRequest(event.getIdentifier(), event.getEventType(), System.currentTimeMillis(), 60000);
-            log.info("Anomaly reported and sent to: " + event.getPlatformIds());
+            log.info("Anomaly detected and trying to report to: " + event.getPlatformIds());
             List<String> platformIds = new ArrayList<>(event.getPlatformIds());
             Map<String, AAM> availableAAMs;
             try {
-                availableAAMs = coreAamClient.getAvailableAAMs().getAvailableAAMs();
-            } catch (AAMException e) {
-                log.error("Couldn't establish connection with core AAM");
+                availableAAMs = componentSecurityHandlerProvider.getComponentSecurityHandler().getSecurityHandler().getAvailableAAMs();
+            } catch (SecurityHandlerException e) {
+                log.error("Couldn't retrieve available AAMs");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("");
             }
             for (String platformId : platformIds) {
@@ -118,7 +120,7 @@ public class EventManagerService {
                 if (platform != null) {
                     String platformAddress = platform.getAamAddress();
                     ComponentClient platformClient = new ComponentClient(platformAddress);
-                    log.info("Anomaly reported: " + handleAnomalyRequest.getAnomalyIdentifier());
+                    log.info("Trying to report anomaly to: " + handleAnomalyRequest.getAnomalyIdentifier());
                     platformClient.reportAnomaly(handleAnomalyRequest);
                     event.removePlatformId(platformId);
                     eventLogRepository.save(event);
