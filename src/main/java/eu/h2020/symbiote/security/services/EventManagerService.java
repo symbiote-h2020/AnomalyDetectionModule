@@ -37,6 +37,8 @@ public class EventManagerService {
     @Value("${adm.environment.trustManagerAddress}")
     private String trustManagerAddress;
 
+    @Value("${symbIoTe.localaam.url=http://localhost:8443}")
+    protected String localAAMAddress;
 
     @Value("${adm.maxFailsNumber}")
     private int maxFailsNumber;
@@ -110,7 +112,7 @@ public class EventManagerService {
             List<String> platformIds = new ArrayList<>(event.getPlatformIds());
             Map<String, AAM> availableAAMs;
             try {
-                availableAAMs = componentSecurityHandlerProvider.getComponentSecurityHandler().getSecurityHandler().getAvailableAAMs();
+                availableAAMs = componentSecurityHandlerProvider.getComponentSecurityHandler().getSecurityHandler().getAvailableAAMs(localAAMAddress);
             } catch (SecurityHandlerException e) {
                 log.error("Couldn't retrieve available AAMs");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("");

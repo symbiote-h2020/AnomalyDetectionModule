@@ -136,7 +136,7 @@ public abstract class AbstractADMTestSuite {
         ISecurityHandler mockedSH = Mockito.mock(ISecurityHandler.class);
         Mockito.when(componentSecurityHandlerProvider.getComponentSecurityHandler()).thenReturn(mockedCSH);
         Mockito.when(mockedCSH.getSecurityHandler()).thenReturn(mockedSH);
-        Mockito.when(mockedSH.getAvailableAAMs()).thenReturn(dummyCoreAAM.getAvailableAAMs().getBody().getAvailableAAMs());
+        Mockito.when(mockedSH.getAvailableAAMs(localAAMAddress)).thenReturn(dummyCoreAAM.getAvailableAAMs().getBody().getAvailableAAMs());
     }
 
     public String convertObjectToJson(Object obj) throws JsonProcessingException {
